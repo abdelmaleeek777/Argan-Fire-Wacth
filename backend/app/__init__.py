@@ -1,39 +1,35 @@
-import os
-
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from app.config import Config
 
-from .config import config_by_name
-
+db = SQLAlchemy()
 
 def create_app():
-    """Application factory — creates and configures the Flask app."""
-    env = os.getenv("FLASK_ENV", "development")
     app = Flask(__name__)
-    app.config.from_object(config_by_name[env])
+    app.config.from_object(Config)
 
-    # Enable CORS so the frontend can talk to this API
+    # Initialize extensions
+    db.init_app(app)
+    JWTManager(app)
     CORS(app)
 
-    # ------------------------------------------------------------------
     # Register blueprints
-    # ------------------------------------------------------------------
-    from .routes.sensors import sensors_bp
-    from .routes.alerts import alerts_bp
-    from .routes.propagation import propagation_bp
-    from .routes.dashboard import dashboard_bp
-    from .routes.logs import logs_bp
+    from app.routes.auth import auth_bp
+    from app.routes.sensors import sensors_bp
+    from app.routes.alerts import alerts_bp
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.admin import admin_bp
+    from app.routes.propagation import propagation_bp
+    from app.routes.logs import logs_bp
 
-    app.register_blueprint(sensors_bp, url_prefix="/sensors")
-    app.register_blueprint(alerts_bp, url_prefix="/alerts")
+    app.register_blueprint(auth_bp,        url_prefix="/auth")
+    app.register_blueprint(sensors_bp,     url_prefix="/sensors")
+    app.register_blueprint(alerts_bp,      url_prefix="/alerts")
+    app.register_blueprint(dashboard_bp,   url_prefix="/cooperative")
+    app.register_blueprint(admin_bp,       url_prefix="/admin")
     app.register_blueprint(propagation_bp, url_prefix="/propagation")
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
-    app.register_blueprint(logs_bp, url_prefix="/logs")
-
-    # Root health-check
-    @app.route("/")
-    def index():
-        from flask import jsonify
-        return jsonify({"message": "Argan Fire Watch API is running"}), 200
+    app.register_blueprint(logs_bp,        url_prefix="/logs")
 
     return app
