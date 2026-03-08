@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 from dotenv import load_dotenv
 
@@ -17,3 +18,15 @@ class Config:
 
     # App
     DEBUG = os.getenv("FLASK_ENV") == "development"
+=======
+import mysql.connector
+
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="",
+        database="argan_fire_watch"
+    )
+    return connection
+>>>>>>> origin/assmaa

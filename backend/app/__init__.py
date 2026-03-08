@@ -1,4 +1,5 @@
 from flask import Flask
+<<<<<<< HEAD
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -31,5 +32,21 @@ def create_app():
     app.register_blueprint(admin_bp,       url_prefix="/admin")
     app.register_blueprint(propagation_bp, url_prefix="/propagation")
     app.register_blueprint(logs_bp,        url_prefix="/logs")
+=======
+from app.routes.auth_routes import auth_bp
+
+def create_app():
+
+    app = Flask(__name__, template_folder="../../frontend/templates")
+
+    app.secret_key = "arganfirewatch"
+
+    from app.routes.auth_routes import auth_bp
+    from app.routes.mesures_routes import mesures_bp
+
+
+    app.register_blueprint(mesures_bp)
+    app.register_blueprint(auth_bp)
+>>>>>>> origin/assmaa
 
     return app
