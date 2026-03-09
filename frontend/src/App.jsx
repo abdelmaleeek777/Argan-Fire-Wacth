@@ -1,35 +1,66 @@
-import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import LandingPage from "./pages/public/LandingPage";
+import Login from "./pages/public/Login";
+import Register from "./pages/public/Register";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import CooperativesPage from "./pages/admin/CooperativesPage";
+import PendingApprovalsPage from "./pages/admin/PendingApprovalsPage";
+import CooperativeDetailPage from "./pages/admin/CooperativeDetailPage";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen">
+      <Routes>
+        {/* Public Routes */}
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar />
+              <main>
+                <LandingPage />
+              </main>
+            </>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <>
+              <Navbar />
+              <main>
+                <Login />
+              </main>
+            </>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <>
+              <Navbar />
+              <main>
+                <Register />
+              </main>
+            </>
+          }
+        />
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="cooperatives" element={<CooperativesPage />} />
+          <Route path="cooperatives/:id" element={<CooperativeDetailPage />} />
+          <Route path="pending" element={<PendingApprovalsPage />} />
+          <Route path="users" element={<div>Users Management (TBD)</div>} />
+        </Route>
+      </Routes>
+    </div>
+  );
 }
 
-export default App
+export default App;

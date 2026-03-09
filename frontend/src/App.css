@@ -1,22 +1,37 @@
-@import "tailwindcss";
-:root {
-  --argan-green: #2d4c1e;
-  --fire-orange: #e67e22;
-} 
- 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Custom styles for the Argan-Fire Watch app */
 
-:root {
-  --argan-green: #2d4c1e;
-  --fire-orange: #e67e22;
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #10b981aa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
-body {
-  @apply bg-gray-50 text-gray-900 font-sans;
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.glass-card {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
 }
