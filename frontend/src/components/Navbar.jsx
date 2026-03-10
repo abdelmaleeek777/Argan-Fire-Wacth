@@ -23,7 +23,7 @@ const Navbar = () => {
   ];
 
   return (
-    <div className="fixed w-full z-50 px-4 sm:px-6 lg:px-8 pt-6 pointer-events-none">
+    <div className=" w-full z-50 px-4 sm:px-6 lg:px-8 pt-6 pointer-events-none">
       <nav
         className={`max-w-5xl mx-auto transition-all duration-500 pointer-events-auto ${
           scrolled
