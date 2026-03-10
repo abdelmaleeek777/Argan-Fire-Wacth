@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Eye,
   X,
-  Plus
+  Plus,
 } from "lucide-react";
 
 /**
@@ -116,7 +116,8 @@ function AdminSensors() {
 
   const getBatteryIcon = (level) => {
     if (level > 80) return <Battery className="w-4 h-4 text-emerald-500" />;
-    if (level > 20) return <BatteryCharging className="w-4 h-4 text-amber-500" />;
+    if (level > 20)
+      return <BatteryCharging className="w-4 h-4 text-amber-500" />;
     return <Battery className="w-4 h-4 text-rose-500" />;
   };
 
@@ -140,10 +141,27 @@ function AdminSensors() {
       setSensors(
         sensors.map((s) =>
           s.id === modal.sensor.id
-            ? { ...s, status: "active", connectivity: "excellent", battery: 100, lastPing: "Just now" }
-            : s
-        )
+            ? {
+                ...s,
+                status: "active",
+                connectivity: "excellent",
+                battery: 100,
+                lastPing: "Just now",
+              }
+            : s,
+        ),
       );
+    } else if (modal.type === "add" && modal.sensor) {
+      const newSensor = {
+        ...modal.sensor,
+        status: "active",
+        battery: 100,
+        connectivity: "excellent",
+        temperature: 25,
+        humidity: 50,
+        lastPing: "Just now",
+      };
+      setSensors([...sensors, newSensor]);
     }
     closeModal();
   };
@@ -160,9 +178,9 @@ function AdminSensors() {
     const matchesSearch =
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.location.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -173,18 +191,20 @@ function AdminSensors() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 border-none pb-0 mb-0 flex items-center gap-2">
             <Cpu className="w-6 h-6 text-emerald-600" />
-            Capteurs IoT (IoT Sensors)
+            IoT Sensors
           </h1>
           <p className="text-slate-500 mt-1 text-sm">
-            Monitorez l'état, la batterie et la connectivité des capteurs déployés.
+            Monitor status, battery, and connectivity of deployed sensors.
           </p>
         </div>
-        <button 
-          onClick={() => openModal("add")}
+        <button
+          onClick={() =>
+            openModal("add", { id: "", location: "", coordinates: "" })
+          }
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Ajouter Capteur
+          Add Sensor
         </button>
       </div>
 
@@ -201,15 +221,15 @@ function AdminSensors() {
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <select 
+          <select
             className="bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl focus:outline-none focus:border-emerald-500 text-sm font-medium flex-1 md:flex-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="all">Tous les statuts</option>
-            <option value="active">Actif (Active)</option>
-            <option value="warning">Avertissement (Warning)</option>
-            <option value="offline">Hors Ligne (Offline)</option>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="warning">Warning</option>
+            <option value="offline">Offline</option>
           </select>
         </div>
       </div>
@@ -219,25 +239,30 @@ function AdminSensors() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-            <p className="text-slate-500 font-medium">Chargement des données capteurs...</p>
+            <p className="text-slate-500 font-medium">
+              Chargement des données capteurs...
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-bold">Capteur</th>
-                  <th className="px-6 py-4 font-bold">Statut</th>
-                  <th className="px-6 py-4 font-bold">Batterie & Réseau</th>
-                  <th className="px-6 py-4 font-bold">Mesures Actuelles</th>
-                  <th className="px-6 py-4 font-bold">Dernier Ping</th>
+                  <th className="px-6 py-4 font-bold">Sensor</th>
+                  <th className="px-6 py-4 font-bold">Status</th>
+                  <th className="px-6 py-4 font-bold">Battery & Network</th>
+                  <th className="px-6 py-4 font-bold">Current Readings</th>
+                  <th className="px-6 py-4 font-bold">Last Ping</th>
                   <th className="px-6 py-4 font-bold text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredSensors.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                    <td
+                      colSpan="6"
+                      className="px-6 py-12 text-center text-slate-500"
+                    >
                       Aucun capteur ne correspond à votre recherche.
                     </td>
                   </tr>
@@ -249,21 +274,31 @@ function AdminSensors() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${
-                            sensor.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
-                            sensor.status === 'warning' ? 'bg-amber-100 text-amber-700' : 
-                            'bg-rose-100 text-rose-700'
-                          }`}>
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${
+                              sensor.status === "active"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : sensor.status === "warning"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-rose-100 text-rose-700"
+                            }`}
+                          >
                             <Cpu className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900 font-mono text-sm">{sensor.id}</div>
-                            <div className="text-sm text-slate-500">{sensor.location}</div>
+                            <div className="font-bold text-slate-900 font-mono text-sm">
+                              {sensor.id}
+                            </div>
+                            <div className="text-sm text-slate-500">
+                              {sensor.location}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusBadge(sensor.status)}`}>
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusBadge(sensor.status)}`}
+                        >
                           {sensor.status}
                         </span>
                       </td>
@@ -272,7 +307,9 @@ function AdminSensors() {
                           <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
                             {getBatteryIcon(sensor.battery)}
                             {sensor.battery}%
-                            {sensor.battery < 20 && <AlertTriangle className="w-3 h-3 text-rose-500 ml-1" />}
+                            {sensor.battery < 20 && (
+                              <AlertTriangle className="w-3 h-3 text-rose-500 ml-1" />
+                            )}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-slate-500 capitalize">
                             {getConnectivityIcon(sensor.connectivity)}
@@ -281,8 +318,10 @@ function AdminSensors() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {sensor.status === 'offline' ? (
-                          <span className="text-slate-400 text-sm italic">Données indisp.</span>
+                        {sensor.status === "offline" ? (
+                          <span className="text-slate-400 text-sm italic">
+                            Data unavailable
+                          </span>
                         ) : (
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-1 text-sm font-medium text-slate-700">
@@ -291,7 +330,7 @@ function AdminSensors() {
                             </div>
                             <div className="flex items-center gap-1 text-sm text-slate-500">
                               <Activity className="w-4 h-4 text-blue-500" />
-                              {sensor.humidity}% Humidité
+                              {sensor.humidity}% Humidity
                             </div>
                           </div>
                         )}
@@ -301,10 +340,9 @@ function AdminSensors() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          
                           {/* Viewer Info Action */}
-                          <button 
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" 
+                          <button
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip"
                             title="Détails du capteur"
                             onClick={() => openModal("view", sensor)}
                           >
@@ -312,8 +350,8 @@ function AdminSensors() {
                           </button>
 
                           {/* Restart/Reset Action */}
-                          <button 
-                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip" 
+                          <button
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip"
                             title="Redémarrer le capteur"
                             onClick={() => openModal("restart", sensor)}
                           >
@@ -337,11 +375,28 @@ function AdminSensors() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500"/> Détails du Capteur</span>}
-                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500"/> Redémarrer Capteur</span>}
-                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500"/> Nouveau Capteur</span>}
+                {modal.type === "view" && (
+                  <span className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-blue-500" /> Sensor Details
+                  </span>
+                )}
+                {modal.type === "restart" && (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-5 h-5 text-amber-500" /> Restart
+                    Sensor
+                  </span>
+                )}
+                {modal.type === "add" && (
+                  <span className="flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-emerald-500" /> Register New
+                    Sensor
+                  </span>
+                )}
               </h3>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full">
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -352,27 +407,36 @@ function AdminSensors() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 border-4 border-white shadow-md">
-                      <Cpu className="w-8 h-8"/>
+                      <Cpu className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-slate-900 font-mono">{modal.sensor.id}</h4>
-                      <p className="text-slate-500 text-sm">{modal.sensor.location}</p>
+                      <h4 className="text-lg font-bold text-slate-900 font-mono">
+                        {modal.sensor.id}
+                      </h4>
+                      <p className="text-slate-500 text-sm">
+                        {modal.sensor.location}
+                      </p>
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Coordonnées GPS</span>
-                      <span className="font-mono text-sm text-slate-800">{modal.sensor.coordinates}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Niveau Batterie</span>
-                      <span className="font-bold flex items-center gap-1">
-                        {getBatteryIcon(modal.sensor.battery)} {modal.sensor.battery}%
+                      <span className="text-slate-500">GPS Coordinates</span>
+                      <span className="font-mono text-sm text-slate-800">
+                        {modal.sensor.coordinates}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Dernier Signal</span>
-                      <span className="font-bold text-slate-800">{modal.sensor.lastPing}</span>
+                      <span className="text-slate-500">Battery Level</span>
+                      <span className="font-bold flex items-center gap-1">
+                        {getBatteryIcon(modal.sensor.battery)}{" "}
+                        {modal.sensor.battery}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Last Ping</span>
+                      <span className="font-bold text-slate-800">
+                        {modal.sensor.lastPing}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -381,52 +445,103 @@ function AdminSensors() {
               {modal.type === "restart" && modal.sensor && (
                 <div className="text-center">
                   <p className="text-slate-600 mb-2">
-                    Êtes-vous sûr de vouloir envoyer un signal de redémarrage à distance au capteur :
+                    Are you sure you want to send a remote restart signal to
+                    sensor:
                   </p>
-                  <p className="text-lg font-bold text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
-                  
+                  <p className="text-lg font-bold text-slate-900 font-mono mb-4">
+                    {modal.sensor.id}
+                  </p>
+
                   <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 mt-6 text-left flex gap-3">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                    Le capteur sera temporairement indisponible (environ 30 à 60 secondes) le temps de son redémarrage matériel.
+                    The sensor will be temporarily offline (30-60 seconds)
+                    during the hardware reboot.
                   </div>
                 </div>
               )}
 
               {modal.type === "add" && (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Cpu className="w-8 h-8 text-slate-400" />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      Sensor ID
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+                      placeholder="e.g. SN-ARG-999"
+                      value={modal.sensor.id}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          sensor: { ...modal.sensor, id: e.target.value },
+                        })
+                      }
+                    />
                   </div>
-                  <h4 className="text-lg font-bold text-slate-900 mb-2">Ajout de matériel</h4>
-                  <p className="text-slate-500 text-sm">
-                    Cette fonctionnalité permet d'enregistrer un nouveau capteur IoT. (Formulaire en cours de développement)
-                  </p>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      Location Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                      placeholder="e.g. West Ridge - Zone C"
+                      value={modal.sensor.location}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          sensor: { ...modal.sensor, location: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      GPS Coordinates
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+                      placeholder="e.g. 30.123, -9.456"
+                      value={modal.sensor.coordinates}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          sensor: {
+                            ...modal.sensor,
+                            coordinates: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-              {(modal.type === "view" || modal.type === "add") ? (
-                <button 
+              {modal.type === "view" || modal.type === "add" ? (
+                <button
                   onClick={closeModal}
                   className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-lg w-full sm:w-auto"
                 >
-                  Fermer
+                  Close
                 </button>
               ) : (
                 <>
-                  <button 
+                  <button
                     onClick={closeModal}
                     className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
                   >
-                    Annuler
+                    Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleConfirmAction}
                     className="px-6 py-2.5 font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20 rounded-xl transition-all flex items-center gap-2"
                   >
-                    <RefreshCw className="w-4 h-4"/> Confirm Restart
+                    <RefreshCw className="w-4 h-4" /> Confirm Restart
                   </button>
                 </>
               )}

@@ -100,6 +100,18 @@ function AdminUsers() {
       );
     } else if (modal.type === "delete") {
       setUsers(users.filter((u) => u.id !== modal.user.id));
+    } else if (modal.type === "add") {
+      const newUser = {
+        ...modal.user,
+        id: users.length + 1,
+        status: "active",
+        joinedAt: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
+        }),
+      };
+      setUsers([...users, newUser]);
     }
 
     closeModal();
@@ -135,6 +147,15 @@ function AdminUsers() {
             delete.
           </p>
         </div>
+        <button
+          onClick={() =>
+            openModal("add", { name: "", email: "", cooperative: "" })
+          }
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Owner
+        </button>
       </div>
 
       {/* Filters and Search */}
@@ -286,26 +307,29 @@ function AdminUsers() {
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 {modal.type === "view" && (
                   <span className="flex items-center gap-2">
-                    <Eye className="w-5 h-5 text-blue-500" /> Informations du
-                    Compte
+                    <Eye className="w-5 h-5 text-blue-500" /> Account Details
                   </span>
                 )}
                 {modal.type === "block" && (
                   <span className="flex items-center gap-2">
-                    <Lock className="w-5 h-5 text-amber-500" /> Bloquer le
-                    compte
+                    <Lock className="w-5 h-5 text-amber-500" /> Block Account
                   </span>
                 )}
                 {modal.type === "unblock" && (
                   <span className="flex items-center gap-2">
-                    <Unlock className="w-5 h-5 text-emerald-500" /> Débloquer le
-                    compte
+                    <Unlock className="w-5 h-5 text-emerald-500" /> Unblock
+                    Account
                   </span>
                 )}
                 {modal.type === "delete" && (
                   <span className="flex items-center gap-2 text-rose-600">
-                    <AlertTriangle className="w-5 h-5" /> Confirmer la
-                    suppression
+                    <AlertTriangle className="w-5 h-5" /> Confirm Deletion
+                  </span>
+                )}
+                {modal.type === "add" && (
+                  <span className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-emerald-500" /> Register New
+                    Owner
                   </span>
                 )}
               </h3>
@@ -336,19 +360,19 @@ function AdminUsers() {
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Coopérative</span>
+                      <span className="text-slate-500">Cooperative</span>
                       <span className="font-bold text-slate-800">
                         {modal.user.cooperative}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Inscrit le</span>
+                      <span className="text-slate-500">Joined At</span>
                       <span className="font-bold text-slate-800">
                         {modal.user.joinedAt}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Statut actuel</span>
+                      <span className="text-slate-500">Current Status</span>
                       <span
                         className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${getStatusBadge(modal.user.status)}`}
                       >
@@ -357,12 +381,66 @@ function AdminUsers() {
                     </div>
                   </div>
                 </div>
+              ) : modal.type === "add" ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                      placeholder="e.g. John Doe"
+                      value={modal.user.name}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          user: { ...modal.user, name: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                      placeholder="john@example.com"
+                      value={modal.user.email}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          user: { ...modal.user, email: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">
+                      Assigned Cooperative
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                      placeholder="e.g. North Argan Grove"
+                      value={modal.user.cooperative}
+                      onChange={(e) =>
+                        setModal({
+                          ...modal,
+                          user: { ...modal.user, cooperative: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="text-center">
                   <p className="text-slate-600 mb-2">
                     {modal.type === "delete"
-                      ? "Êtes-vous sûr de vouloir supprimer définitivement le compte de"
-                      : `Êtes-vous sûr de vouloir ${modal.type === "block" ? "bloquer" : "débloquer"} le compte de`}
+                      ? "Are you sure you want to permanently delete the account of"
+                      : `Are you sure you want to ${modal.type === "block" ? "block" : "unblock"} the account of`}
                   </p>
                   <p className="text-lg font-bold text-slate-900 mb-4">
                     {modal.user.name} ({modal.user.email})
@@ -371,15 +449,15 @@ function AdminUsers() {
                   {modal.type === "delete" && (
                     <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm font-medium border border-rose-100 mt-6 text-left flex gap-3">
                       <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                      Attention: Cette action est irréversible. Toutes les
-                      données associées à cet utilisateur seront supprimées.
+                      Warning: This action is irreversible. All data associated
+                      with this user will be removed.
                     </div>
                   )}
                   {modal.type === "block" && (
                     <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 mt-6 text-left flex gap-3">
                       <Lock className="w-5 h-5 flex-shrink-0" />
-                      L'utilisateur ne pourra plus se connecter et ne recevra
-                      plus d'alertes jusqu'à son déblocage.
+                      The user will no longer be able to log in or receive
+                      alerts until unblocked.
                     </div>
                   )}
                 </div>
@@ -401,7 +479,7 @@ function AdminUsers() {
                     onClick={closeModal}
                     className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
                   >
-                    Annuler
+                    Cancel
                   </button>
                   <button
                     onClick={handleConfirmAction}
@@ -416,7 +494,8 @@ function AdminUsers() {
                     {modal.type === "delete" && <Trash2 className="w-4 h-4" />}
                     {modal.type === "block" && <Lock className="w-4 h-4" />}
                     {modal.type === "unblock" && <Unlock className="w-4 h-4" />}
-                    Confirmer
+                    {modal.type === "add" && <Users className="w-4 h-4" />}
+                    Confirm
                   </button>
                 </>
               )}

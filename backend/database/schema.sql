@@ -54,7 +54,7 @@ CREATE TABLE zones_forestieres (
     region VARCHAR(100) NOT NULL,
     wilaya VARCHAR(100),
     superficie_ha DECIMAL(10,2) UNSIGNED,
-    coordonnees_gps POINT,
+    coordonnees_gps GEOMETRY NOT NULL,
     indice_risque DECIMAL(4,2) UNSIGNED DEFAULT 0.00
         CHECK (indice_risque BETWEEN 0 AND 10),
     description TEXT,
@@ -124,7 +124,9 @@ CREATE TABLE cooperatives (
     numero_agrement VARCHAR(50) UNIQUE,
     date_creation DATE NOT NULL DEFAULT (CURDATE()),
     id_responsable INT UNSIGNED NOT NULL,
-    FOREIGN KEY (id_responsable) REFERENCES utilisateurs(id_utilisateur)
+    id_zone INT UNSIGNED,
+    FOREIGN KEY (id_responsable) REFERENCES utilisateurs(id_utilisateur),
+    FOREIGN KEY (id_zone) REFERENCES zones_forestieres(id_zone) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE logs_securite (

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -24,33 +25,25 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
-
-      const response = await fetch("http://127.0.0.1:5000/login", {
-        method: "POST",
-        body: formData,
+      const response = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
       });
 
-      const data = await response.text();
-
-      if (response.ok) {
-        if (data.includes("Bienvenue") || data.includes("Welcome")) {
-          console.log("Login successful:", data);
-          if (data.toLowerCase().includes("admin")) {
-            navigate("/admin/dashboard");
-          } else {
-            navigate("/dashboard");
-          }
+      if (response.status === 200) {
+        const data = response.data;
+        console.log("Login successful:", data.message);
+        
+        if (data.user.role === "ADMIN") {
+          navigate("/admin/dashboard");
         } else {
-          setError(data || "Invalid credentials");
+          navigate("/dashboard");
         }
       } else {
-        setError("An error occurred during sign in.");
+        setError("Invalid credentials");
       }
     } catch (err) {
-      setError("Unable to reach the server. Please check your connection.");
+      setError(err.response?.data?.message || "Unable to reach the server. Please check your connection.");
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);

@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_cors import CORS
-from app.routes.auth_routes import auth_bp
 
 def create_app():
 
@@ -14,7 +13,7 @@ def create_app():
     from app.routes.mesures_routes import mesures_bp
 
 
-    app.register_blueprint(mesures_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(mesures_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
     return app
