@@ -1,6 +1,7 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session,jsonify
 from app.config import get_db_connection
 import hashlib
+import json
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -8,58 +9,67 @@ auth_bp = Blueprint("auth", __name__)
 # =========================
 # REGISTER
 # =========================
-@auth_bp.route("/register", methods=["GET", "POST"])
+@auth_bp.route("/register", methods=["POST"])
 def register():
+    data = request.get_json()
 
-    if request.method == "POST":
+    nom = data.get("nom")
+    prenom = data.get("prenom")
+    email = data.get("email")
+    password = data.get("password")
+    coop_name = data.get("coopName")
+    region = data.get("region")
+    address = data.get("address")
+    phone = data.get("phone")
+    zone_name = data.get("zoneName")
+    polygon = data.get("polygon")
 
-        nom = request.form.get("nom")
-        prenom = request.form.get("prenom")
-        email = request.form.get("email")
-        password = request.form.get("password")
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # vérifier si email existe
-        cursor.execute("SELECT id_utilisateur FROM utilisateurs WHERE email=%s", (email,))
-        existing_user = cursor.fetchone()
-
-        if existing_user:
-            return "Email déjà utilisé"
-
-        # créer utilisateur
+    try:
+        # 1️⃣ créer utilisateur
         cursor.execute("""
-        INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash)
-        VALUES (%s,%s,%s,%s)
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash, statut)
+            VALUES (%s, %s, %s, %s, 'pending')
         """, (nom, prenom, email, password_hash))
-
-        conn.commit()
 
         user_id = cursor.lastrowid
 
-        # récupérer le rôle COOPERATIVE dynamiquement
-        cursor.execute("SELECT id_role FROM roles WHERE libelle=%s", ("UTILISATEUR_COOP",))
-        role = cursor.fetchone()
-
-        if role:
-            cursor.execute("""
+        # 2️⃣ ajouter rôle Cooperative Owner
+        cursor.execute("""
             INSERT INTO utilisateurs_roles (id_utilisateur, id_role)
-            VALUES (%s,%s)
-            """, (user_id, role["id_role"]))
+            VALUES (%s, %s)
+        """, (user_id, 3))
+
+        # 3️⃣ créer coopérative
+        cursor.execute("""
+            INSERT INTO cooperatives 
+                (nom_cooperative, siege_social, email_contact, telephone, region, zone_name, polygon, id_responsable, statut)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+        """, (
+            coop_name,
+            address,
+            email,
+            phone,
+            region,
+            zone_name,
+            json.dumps(polygon),
+            user_id
+        ))
 
         conn.commit()
+        return jsonify({"message": "Demande envoyée avec succès"}), 201
 
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"message": f"Erreur: {str(e)}"}), 500
+
+    finally:
         cursor.close()
         conn.close()
-
-        return redirect(url_for("auth.login"))
-
-    return render_template("register.html")
-
-
 # =========================
 # LOGIN
 # =========================
@@ -99,7 +109,7 @@ def login():
             return "Utilisateur introuvable"
 
         # vérifier statut
-        if user["statut"] != "ACTIF":
+        if user["statut"] != "approved":
             cursor.close()
             conn.close()
             return "Compte inactif ou suspendu"

@@ -153,7 +153,7 @@ const Register = () => {
     setLoading(true);
     setError("");
     try {
-      await axios.post("http://localhost:5000/auth/register", formData);
+      await axios.post("http://localhost:5000/register", formData);
       setSuccess(true);
     } catch (err) {
       setError(
