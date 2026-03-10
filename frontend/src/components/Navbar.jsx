@@ -20,16 +20,16 @@ const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "Features", path: "/#features" },
     { name: "About", path: "/#about" },
+    { name: "Admin", path: "/admin" },
   ];
 
   return (
     <div className="fixed w-full z-50 px-4 sm:px-6 lg:px-8 pt-6 pointer-events-none">
       <nav
-        className={`max-w-5xl mx-auto transition-all duration-500 pointer-events-auto ${
-          scrolled
+        className={`max-w-5xl mx-auto transition-all duration-500 pointer-events-auto ${scrolled
             ? "bg-white/80 backdrop-blur-2xl border border-slate-200 py-3 px-6 rounded-[2rem] shadow-xl"
             : "bg-transparent py-2 px-4"
-        }`}
+          }`}
       >
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 group">
@@ -48,7 +48,7 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const isHash = link.path.startsWith("/#");
-              
+
               if (isHash) {
                 return (
                   <Link
@@ -69,7 +69,7 @@ const Navbar = () => {
                   </Link>
                 );
               }
-              
+
               return (
                 <Link
                   key={link.name}
