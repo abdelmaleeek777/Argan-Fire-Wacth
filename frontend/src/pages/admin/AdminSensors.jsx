@@ -160,9 +160,9 @@ function AdminSensors() {
     const matchesSearch =
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.location.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -179,7 +179,7 @@ function AdminSensors() {
             Monitorez l'état, la batterie et la connectivité des capteurs déployés.
           </p>
         </div>
-        <button 
+        <button
           onClick={() => openModal("add")}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
         >
@@ -201,7 +201,7 @@ function AdminSensors() {
           />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <select 
+          <select
             className="bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl focus:outline-none focus:border-emerald-500 text-sm font-medium flex-1 md:flex-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -249,11 +249,10 @@ function AdminSensors() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${
-                            sensor.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
-                            sensor.status === 'warning' ? 'bg-amber-100 text-amber-700' : 
-                            'bg-rose-100 text-rose-700'
-                          }`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${sensor.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                              sensor.status === 'warning' ? 'bg-amber-100 text-amber-700' :
+                                'bg-rose-100 text-rose-700'
+                            }`}>
                             <Cpu className="w-5 h-5" />
                           </div>
                           <div>
@@ -301,10 +300,10 @@ function AdminSensors() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          
+
                           {/* Viewer Info Action */}
-                          <button 
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" 
+                          <button
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip"
                             title="Détails du capteur"
                             onClick={() => openModal("view", sensor)}
                           >
@@ -312,8 +311,8 @@ function AdminSensors() {
                           </button>
 
                           {/* Restart/Reset Action */}
-                          <button 
-                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip" 
+                          <button
+                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip"
                             title="Redémarrer le capteur"
                             onClick={() => openModal("restart", sensor)}
                           >
@@ -337,9 +336,9 @@ function AdminSensors() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500"/> Détails du Capteur</span>}
-                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500"/> Redémarrer Capteur</span>}
-                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500"/> Nouveau Capteur</span>}
+                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Détails du Capteur</span>}
+                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500" /> Redémarrer Capteur</span>}
+                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500" /> Nouveau Capteur</span>}
               </h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full">
                 <X className="w-5 h-5" />
@@ -352,7 +351,7 @@ function AdminSensors() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 border-4 border-white shadow-md">
-                      <Cpu className="w-8 h-8"/>
+                      <Cpu className="w-8 h-8" />
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-slate-900 font-mono">{modal.sensor.id}</h4>
@@ -384,7 +383,7 @@ function AdminSensors() {
                     Êtes-vous sûr de vouloir envoyer un signal de redémarrage à distance au capteur :
                   </p>
                   <p className="text-lg font-bold text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
-                  
+
                   <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 mt-6 text-left flex gap-3">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                     Le capteur sera temporairement indisponible (environ 30 à 60 secondes) le temps de son redémarrage matériel.
@@ -408,7 +407,7 @@ function AdminSensors() {
             {/* Modal Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
               {(modal.type === "view" || modal.type === "add") ? (
-                <button 
+                <button
                   onClick={closeModal}
                   className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-lg w-full sm:w-auto"
                 >
@@ -416,17 +415,17 @@ function AdminSensors() {
                 </button>
               ) : (
                 <>
-                  <button 
+                  <button
                     onClick={closeModal}
                     className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
                   >
                     Annuler
                   </button>
-                  <button 
+                  <button
                     onClick={handleConfirmAction}
                     className="px-6 py-2.5 font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20 rounded-xl transition-all flex items-center gap-2"
                   >
-                    <RefreshCw className="w-4 h-4"/> Confirm Restart
+                    <RefreshCw className="w-4 h-4" /> Confirm Restart
                   </button>
                 </>
               )}
