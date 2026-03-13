@@ -1,5 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  MapContainer,
+  TileLayer,
+  Polygon,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix Leaflet marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 import axios from "axios";
 import {
   Building2,
@@ -57,6 +76,19 @@ const CooperativeDetailPage = () => {
   if (!data) return <div>Cooperative not found</div>;
 
   const { cooperative, zones, sensors } = data;
+
+  // Component for Map Auto-Fit/Center
+  const MapRefocus = ({ coords }) => {
+    const map = useMap();
+    useEffect(() => {
+      if (coords && coords.length > 0) {
+        // Find bounds considering Leaflet wants [lat, lng] instead of GeoJSON's [lng, lat]
+        const bounds = L.latLngBounds(coords.map((c) => [c[1], c[0]]));
+        map.fitBounds(bounds);
+      }
+    }, [coords, map]);
+    return null;
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -166,7 +198,7 @@ const CooperativeDetailPage = () => {
               <Layers className="w-5 h-5 text-emerald-500" />
               Protection Zones ({zones.length})
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {zones.length > 0 ? (
                 zones.map((zone) => (
                   <div
@@ -174,9 +206,34 @@ const CooperativeDetailPage = () => {
                     className="p-4 border border-slate-100 rounded-2xl bg-emerald-50/20"
                   >
                     <p className="font-bold text-slate-800">{zone.name}</p>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-sm text-slate-500 mt-1 mb-4">
                       {zone.description || "Fire monitoring zone"}
                     </p>
+
+                    {/* Zone Boundary Map */}
+                    {zone.geojson && zone.geojson.coordinates && (
+                      <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-emerald-100">
+                        <MapContainer
+                          center={[30.4278, -9.5981]}
+                          zoom={10}
+                          scrollWheelZoom={false}
+                          className="h-full w-full"
+                        >
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                          <Polygon
+                            positions={zone.geojson.coordinates[0].map((c) => [
+                              c[1],
+                              c[0],
+                            ])}
+                            pathOptions={{
+                              color: "#059669",
+                              fillOpacity: 0.4,
+                            }}
+                          />
+                          <MapRefocus coords={zone.geojson.coordinates[0]} />
+                        </MapContainer>
+                      </div>
+                    )}
                   </div>
                 ))
               ) : (

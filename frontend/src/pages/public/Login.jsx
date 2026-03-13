@@ -25,15 +25,18 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email,
+          password,
+        },
+      );
 
       if (response.status === 200) {
         const data = response.data;
         console.log("Login successful:", data.message);
-        
+
         if (data.user.role === "ADMIN") {
           navigate("/admin/dashboard");
         } else {
@@ -43,7 +46,10 @@ const Login = () => {
         setError("Invalid credentials");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to reach the server. Please check your connection.");
+      setError(
+        err.response?.data?.message ||
+          "Unable to reach the server. Please check your connection.",
+      );
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);

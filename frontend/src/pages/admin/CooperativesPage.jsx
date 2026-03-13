@@ -118,14 +118,14 @@ const CooperativesPage = () => {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          coop.status === "approved"
+                          coop.statut === "approved"
                             ? "bg-emerald-100 text-emerald-700"
-                            : coop.status === "pending"
+                            : coop.statut === "pending"
                               ? "bg-amber-100 text-amber-700"
                               : "bg-rose-100 text-rose-700"
                         }`}
                       >
-                        {coop.status.charAt(0) + coop.status.slice(1)}
+                        {coop.statut ? coop.statut.charAt(0).toUpperCase() + coop.statut.slice(1) : 'Unknown'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">

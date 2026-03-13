@@ -1,6 +1,7 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session
+from flask import Blueprint, request, render_template, redirect, url_for, session,jsonify
 from app.config import get_db_connection
 import hashlib
+import json
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -12,7 +13,7 @@ auth_bp = Blueprint("auth", __name__)
 def register():
     data = request.get_json()
     if not data:
-        return {"message": "Invalid data"}, 400
+        return jsonify({"message": "Invalid data"}), 400
 
     prenom = data.get("prenom")
     nom = data.get("nom")
@@ -25,8 +26,8 @@ def register():
     zone_name = data.get("zoneName")
     polygon = data.get("polygon")  # Expected as list of [lng, lat]
 
-    if not all([prenom, nom, email, password, coop_name, region, zone_name, polygon]):
-        return {"message": "Missing required fields"}, 400
+    if not all([prenom, nom, email, password, coop_name, region, zone_name, polygon, address, phone]):
+        return jsonify({"message": "Missing required fields"}), 400
 
     password_hash = hashlib.sha256(password.encode()).hexdigest()
 
@@ -37,23 +38,24 @@ def register():
         # 1. Check if email exists
         cursor.execute("SELECT id_utilisateur FROM utilisateurs WHERE email=%s", (email,))
         if cursor.fetchone():
-            return {"message": "Email already registered"}, 409
+            return jsonify({"message": "Email already registered"}), 409
 
-        # 2. Create User
+        # 2. Create User with pending status
         cursor.execute("""
-            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash, statut)
+            VALUES (%s, %s, %s, %s, 'pending')
         """, (nom, prenom, email, password_hash))
         user_id = cursor.lastrowid
 
         # 3. Assign Role (UTILISATEUR_COOP)
         cursor.execute("SELECT id_role FROM roles WHERE libelle=%s", ("UTILISATEUR_COOP",))
         role = cursor.fetchone()
-        if role:
-            cursor.execute("""
-                INSERT INTO utilisateurs_roles (id_utilisateur, id_role)
-                VALUES (%s, %s)
-            """, (user_id, role["id_role"]))
+        role_id = role["id_role"] if role else 3
+        
+        cursor.execute("""
+            INSERT INTO utilisateurs_roles (id_utilisateur, id_role)
+            VALUES (%s, %s)
+        """, (user_id, role_id))
 
         # 4. Create Forest Zone
         # Convert polygon [ [lng, lat], ... ] to WKT POLYGON((lng lat, ...))
@@ -72,22 +74,21 @@ def register():
 
         # 5. Create Cooperative
         cursor.execute("""
-            INSERT INTO cooperatives (nom_cooperative, siege_social, email_contact, telephone, id_responsable, id_zone)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (coop_name, address, email, phone, user_id, zone_id))
+            INSERT INTO cooperatives 
+                (nom_cooperative, siege_social, email_contact, telephone, region, zone_name, id_responsable, id_zone, statut)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+        """, (coop_name, address, email, phone, region, zone_name, user_id, zone_id))
 
         conn.commit()
-        return {"message": "Registration successful"}, 201
+        return jsonify({"message": "Registration successful"}), 201
 
     except Exception as e:
         conn.rollback()
         print(f"Registration Error: {e}")
-        return {"message": f"Server error: {str(e)}"}, 500
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
     finally:
         cursor.close()
         conn.close()
-
-
 # =========================
 # LOGIN
 # =========================
@@ -95,13 +96,13 @@ def register():
 def login():
     data = request.get_json()
     if not data:
-        return {"message": "Invalid data"}, 400
+        return jsonify({"message": "Invalid data"}), 400
 
     email = data.get("email")
     password = data.get("password")
 
     if not email or not password:
-        return {"message": "Email and password are required"}, 400
+        return jsonify({"message": "Email and password are required"}), 400
 
     password_hash = hashlib.sha256(password.encode()).hexdigest()
 
@@ -129,8 +130,9 @@ def login():
         if not user:
             return {"message": "User not found"}, 404
 
-        if user["statut"] != "ACTIF":
-            return {"message": "Account inactive or suspended"}, 403
+        # vérifier statut
+        if user["statut"] not in ["approved", "ACTIF"]:
+            return jsonify({"message": "Compte inactif ou en attente d'approbation"}), 403
 
         if user["mot_de_passe_hash"] != password_hash:
             return {"message": "Invalid password"}, 401
@@ -147,7 +149,7 @@ def login():
         session["user_id"] = user["id_utilisateur"]
         session["role"] = user["role"]
 
-        return {
+        return jsonify({
             "message": "Login successful",
             "user": {
                 "id": user["id_utilisateur"],
@@ -156,11 +158,11 @@ def login():
                 "email": user["email"],
                 "role": user["role"]
             }
-        }, 200
+        }), 200
 
     except Exception as e:
         print(f"Login Error: {e}")
-        return {"message": "Internal server error"}, 500
+        return jsonify({"message": "Internal server error"}), 500
     finally:
         cursor.close()
         conn.close()

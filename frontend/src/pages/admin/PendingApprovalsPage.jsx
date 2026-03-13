@@ -10,7 +10,9 @@ import {
   Search,
   Loader2,
   Inbox,
+  Eye,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const PendingApprovalsPage = () => {
   const [pending, setPending] = useState([]);
@@ -120,21 +122,30 @@ const PendingApprovalsPage = () => {
                 </div>
               </div>
 
-              <div className="mt-8 flex items-center gap-4">
-                <button
-                  onClick={() => handleAction(coop._id, "approve")}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-sm active:scale-95"
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Link
+                  to={`/admin/cooperatives/${coop._id}`}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm active:scale-95"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleAction(coop._id, "reject")}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-700 hover:text-rose-600 font-bold rounded-xl transition-all shadow-sm active:scale-95"
-                >
-                  <XCircle className="w-5 h-5" />
-                  Reject
-                </button>
+                  <Eye className="w-5 h-5" />
+                  View Details
+                </Link>
+                <div className="w-full flex items-center gap-4">
+                  <button
+                    onClick={() => handleAction(coop._id, "approve")}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-sm active:scale-95"
+                  >
+                    <CheckCircle2 className="w-5 h-5" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleAction(coop._id, "reject")}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-700 hover:text-rose-600 font-bold rounded-xl transition-all shadow-sm active:scale-95"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Reject
+                  </button>
+                </div>
               </div>
             </div>
           ))}
