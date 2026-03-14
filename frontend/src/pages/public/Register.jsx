@@ -16,7 +16,7 @@ import {
   Map as MapIcon,
   Maximize2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   MapContainer,
@@ -53,10 +53,10 @@ const regions = [
 ];
 
 const Register = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [areaHectares, setAreaHectares] = useState(0);
 
   const [formData, setFormData] = useState({
@@ -154,8 +154,8 @@ const Register = () => {
     setLoading(true);
     setError("");
     try {
-      await axios.post("http://localhost:5000/api/auth/register", formData);
-      setSuccess(true);
+      await axios.post("http://localhost:5000/auth/register", formData);
+      navigate('/coop/profile', { state: { ...formData, areaHectares } });
     } catch (err) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again.",
@@ -178,36 +178,6 @@ const Register = () => {
   };
 
   const stepNames = ["Identity", "Cooperative", "Zone Area", "Review"];
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans border-t-4 border-emerald-600">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-white/80 backdrop-blur-xl border border-white p-10 rounded-[3rem] text-center shadow-2xl shadow-emerald-900/5"
-        >
-          <div className="w-24 h-24 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-600/20">
-            <CheckCircle2 className="w-12 h-12 text-white" />
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 mb-6 tracking-tight">
-            Registration Submitted
-          </h2>
-          <p className="text-slate-500 leading-relaxed mb-10">
-            Your registration has been submitted successfully. The administrator
-            will review your account and cooperative details within 24 hours.
-          </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-emerald-600 font-bold hover:text-emerald-700 transition-colors group"
-          >
-            Return to Landing Page
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 pt-32 pb-20 px-4 font-sans relative overflow-hidden">

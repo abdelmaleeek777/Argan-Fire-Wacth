@@ -130,12 +130,23 @@ def login():
         if not user:
             return {"message": "User not found"}, 404
 
-        # vérifier statut
-        if user["statut"] not in ["approved", "ACTIF"]:
-            return jsonify({"message": "Compte inactif ou en attente d'approbation"}), 403
-
         if user["mot_de_passe_hash"] != password_hash:
             return {"message": "Invalid password"}, 401
+
+        # Fetch cooperative info for this user (if they are a coop owner)
+        cooperative_statut = None
+        cooperative_id = None
+        if user["role"] == "UTILISATEUR_COOP":
+            cursor.execute("""
+                SELECT id_cooperative, statut
+                FROM cooperatives
+                WHERE id_responsable = %s
+                LIMIT 1
+            """, (user["id_utilisateur"],))
+            coop = cursor.fetchone()
+            if coop:
+                cooperative_statut = coop["statut"]
+                cooperative_id = coop["id_cooperative"]
 
         # Update last login
         cursor.execute("""
@@ -145,7 +156,6 @@ def login():
         """, (user["id_utilisateur"],))
         conn.commit()
 
-        # Session (though React usually uses tokens, we'll keep session for now if that's the pattern)
         session["user_id"] = user["id_utilisateur"]
         session["role"] = user["role"]
 
@@ -156,7 +166,9 @@ def login():
                 "nom": user["nom"],
                 "prenom": user["prenom"],
                 "email": user["email"],
-                "role": user["role"]
+                "role": user["role"],
+                "statut": cooperative_statut or user["statut"],
+                "cooperative_id": cooperative_id
             }
         }), 200
 

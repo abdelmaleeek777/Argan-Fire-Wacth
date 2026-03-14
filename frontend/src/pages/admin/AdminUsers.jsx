@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Users,
   Search,
-  Shield,
   UserCheck,
   UserX,
   Mail,
@@ -13,7 +13,10 @@ import {
   Eye,
   X,
   AlertTriangle,
+  Plus,
 } from "lucide-react";
+
+const API_BASE = "http://localhost:5000/admin";
 
 /**
  * Admin Users Management Page
@@ -30,50 +33,22 @@ function AdminUsers() {
     type: null, // "view", "block", "unblock", "delete"
     user: null,
   });
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/users`);
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate fetching users from backend
-    const loadUsers = async () => {
-      setLoading(true);
-      setTimeout(() => {
-        setUsers([
-          {
-            id: 1,
-            name: "Amina Youssef",
-            email: "amina@coop-argan.ma",
-            status: "active",
-            cooperative: "Argan North",
-            joinedAt: "Jan 12, 2026",
-          },
-          {
-            id: 2,
-            name: "Kamal Fassi",
-            email: "kamal.f@coopsouth.ma",
-            status: "active",
-            cooperative: "South Argan Grove",
-            joinedAt: "Feb 05, 2026",
-          },
-          {
-            id: 3,
-            name: "Hassan Oulhaj",
-            email: "hassan.test@gmail.com",
-            status: "blocked",
-            cooperative: "Atlas Argan",
-            joinedAt: "Dec 30, 2025",
-          },
-          {
-            id: 4,
-            name: "Nadia Benali",
-            email: "n.benali@argan-val.ma",
-            status: "active",
-            cooperative: "Valley Cooperative",
-            joinedAt: "Mar 01, 2026",
-          },
-        ]);
-        setLoading(false);
-      }, 800);
-    };
-    loadUsers();
+    fetchUsers();
   }, []);
 
   const getStatusBadge = (status) => {
@@ -82,39 +57,31 @@ function AdminUsers() {
         return "bg-emerald-100 text-emerald-700 border border-emerald-200";
       case "blocked":
         return "bg-rose-100 text-rose-700 border border-rose-200";
+      case "pending":
+        return "bg-amber-100 text-amber-700 border border-amber-200";
       default:
         return "bg-slate-100 text-slate-700 border border-slate-200";
     }
   };
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (!modal.user) return;
+    setActionLoading(true);
 
-    if (modal.type === "block" || modal.type === "unblock") {
-      setUsers(
-        users.map((u) =>
-          u.id === modal.user.id
-            ? { ...u, status: u.status === "blocked" ? "active" : "blocked" }
-            : u,
-        ),
-      );
-    } else if (modal.type === "delete") {
-      setUsers(users.filter((u) => u.id !== modal.user.id));
-    } else if (modal.type === "add") {
-      const newUser = {
-        ...modal.user,
-        id: users.length + 1,
-        status: "active",
-        joinedAt: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        }),
-      };
-      setUsers([...users, newUser]);
+    try {
+      if (modal.type === "block" || modal.type === "unblock") {
+        await axios.patch(`${API_BASE}/users/${modal.user.id}/toggle-block`);
+      } else if (modal.type === "delete") {
+        await axios.delete(`${API_BASE}/users/${modal.user.id}`);
+      }
+      // Refresh users list after action
+      await fetchUsers();
+    } catch (err) {
+      console.error("Action error:", err);
+    } finally {
+      setActionLoading(false);
+      closeModal();
     }
-
-    closeModal();
   };
 
   const openModal = (type, user) => {
@@ -127,11 +94,21 @@ function AdminUsers() {
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase());
+      (u.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="space-y-8 relative">
@@ -147,15 +124,6 @@ function AdminUsers() {
             delete.
           </p>
         </div>
-        <button
-          onClick={() =>
-            openModal("add", { name: "", email: "", cooperative: "" })
-          }
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Owner
-        </button>
       </div>
 
       {/* Filters and Search */}
@@ -179,6 +147,7 @@ function AdminUsers() {
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="blocked">Blocked</option>
+            <option value="pending">Pending</option>
           </select>
         </div>
       </div>
@@ -221,7 +190,7 @@ function AdminUsers() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm shrink-0">
-                            {user.name.charAt(0)}
+                            {(user.name || "?").charAt(0)}
                           </div>
                           <div>
                             <div className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
@@ -235,7 +204,7 @@ function AdminUsers() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-600">
-                        {user.cooperative}
+                        {user.cooperative || "—"}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -247,42 +216,42 @@ function AdminUsers() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500">
-                        {user.joinedAt}
+                        {formatDate(user.joinedAt)}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Viewer Info Action */}
+                          {/* View Info */}
                           <button
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip"
-                            title="Consulter infos"
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View details"
                             onClick={() => openModal("view", user)}
                           >
                             <Eye className="w-5 h-5" />
                           </button>
 
-                          {/* Block/Unblock Action */}
+                          {/* Block/Unblock */}
                           {user.status === "blocked" ? (
                             <button
-                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors tooltip"
-                              title="Débloquer le compte"
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                              title="Unblock account"
                               onClick={() => openModal("unblock", user)}
                             >
                               <Unlock className="w-5 h-5" />
                             </button>
                           ) : (
                             <button
-                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip"
-                              title="Bloquer le compte"
+                              className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              title="Block account"
                               onClick={() => openModal("block", user)}
                             >
                               <Lock className="w-5 h-5" />
                             </button>
                           )}
 
-                          {/* Delete Action */}
+                          {/* Delete */}
                           <button
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors tooltip"
-                            title="Supprimer le compte"
+                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="Delete account"
                             onClick={() => openModal("delete", user)}
                           >
                             <Trash2 className="w-5 h-5" />
@@ -326,12 +295,6 @@ function AdminUsers() {
                     <AlertTriangle className="w-5 h-5" /> Confirm Deletion
                   </span>
                 )}
-                {modal.type === "add" && (
-                  <span className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-emerald-500" /> Register New
-                    Owner
-                  </span>
-                )}
               </h3>
               <button
                 onClick={closeModal}
@@ -347,7 +310,7 @@ function AdminUsers() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 mb-6">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-2xl border-4 border-white shadow-md">
-                      {modal.user.name.charAt(0)}
+                      {(modal.user.name || "?").charAt(0)}
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-slate-900">
@@ -362,13 +325,13 @@ function AdminUsers() {
                     <div className="flex justify-between">
                       <span className="text-slate-500">Cooperative</span>
                       <span className="font-bold text-slate-800">
-                        {modal.user.cooperative}
+                        {modal.user.cooperative || "—"}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Joined At</span>
                       <span className="font-bold text-slate-800">
-                        {modal.user.joinedAt}
+                        {formatDate(modal.user.joinedAt)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -379,60 +342,6 @@ function AdminUsers() {
                         {modal.user.status}
                       </span>
                     </div>
-                  </div>
-                </div>
-              ) : modal.type === "add" ? (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-                      placeholder="e.g. John Doe"
-                      value={modal.user.name}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          user: { ...modal.user, name: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-                      placeholder="john@example.com"
-                      value={modal.user.email}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          user: { ...modal.user, email: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Assigned Cooperative
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-                      placeholder="e.g. North Argan Grove"
-                      value={modal.user.cooperative}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          user: { ...modal.user, cooperative: e.target.value },
-                        })
-                      }
-                    />
                   </div>
                 </div>
               ) : (
@@ -471,7 +380,7 @@ function AdminUsers() {
                   onClick={closeModal}
                   className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-lg"
                 >
-                  Fermer
+                  Close
                 </button>
               ) : (
                 <>
@@ -483,7 +392,8 @@ function AdminUsers() {
                   </button>
                   <button
                     onClick={handleConfirmAction}
-                    className={`px-6 py-2.5 font-bold text-white rounded-xl transition-all shadow-lg flex items-center gap-2 ${
+                    disabled={actionLoading}
+                    className={`px-6 py-2.5 font-bold text-white rounded-xl transition-all shadow-lg flex items-center gap-2 disabled:opacity-50 ${
                       modal.type === "delete"
                         ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
                         : modal.type === "block"
@@ -491,10 +401,15 @@ function AdminUsers() {
                           : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
                     }`}
                   >
-                    {modal.type === "delete" && <Trash2 className="w-4 h-4" />}
-                    {modal.type === "block" && <Lock className="w-4 h-4" />}
-                    {modal.type === "unblock" && <Unlock className="w-4 h-4" />}
-                    {modal.type === "add" && <Users className="w-4 h-4" />}
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        {modal.type === "delete" && <Trash2 className="w-4 h-4" />}
+                        {modal.type === "block" && <Lock className="w-4 h-4" />}
+                        {modal.type === "unblock" && <Unlock className="w-4 h-4" />}
+                      </>
+                    )}
                     Confirm
                   </button>
                 </>

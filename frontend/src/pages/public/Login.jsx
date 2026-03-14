@@ -35,12 +35,24 @@ const Login = () => {
 
       if (response.status === 200) {
         const data = response.data;
-        console.log("Login successful:", data.message);
+        const user = data.user;
 
-        if (data.user.role === "ADMIN") {
+        // Save user data to localStorage
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("role", user.role);
+        localStorage.setItem("token", "authenticated");
+
+        // Redirect based on role and statut
+        if (user.role === "ADMIN") {
           navigate("/admin/dashboard");
+        } else if (user.statut === "approved") {
+          navigate("/coop/dashboard");
+        } else if (user.statut === "pending") {
+          navigate("/pending");
+        } else if (user.statut === "rejected") {
+          navigate("/rejected");
         } else {
-          navigate("/dashboard");
+          navigate("/coop/dashboard");
         }
       } else {
         setError("Invalid credentials");

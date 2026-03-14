@@ -3,6 +3,7 @@ from flask_cors import CORS
 from app.routes.auth_routes import auth_bp
 from app.routes.admin import admin_bp
 from app.routes.mesures_routes import mesures_bp
+from app.routes.cooperative_routes import coop_bp
 
 def create_app():
 
@@ -14,5 +15,6 @@ def create_app():
     app.register_blueprint(mesures_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(coop_bp, url_prefix='/api')
 
     return app

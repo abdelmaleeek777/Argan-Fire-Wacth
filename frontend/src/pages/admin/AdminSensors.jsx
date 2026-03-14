@@ -198,9 +198,7 @@ function AdminSensors() {
           </p>
         </div>
         <button
-          onClick={() =>
-            openModal("add", { id: "", location: "", coordinates: "" })
-          }
+          onClick={() => openModal("add")}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -274,15 +272,10 @@ function AdminSensors() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${
-                              sensor.status === "active"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : sensor.status === "warning"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-rose-100 text-rose-700"
-                            }`}
-                          >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${sensor.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                              sensor.status === 'warning' ? 'bg-amber-100 text-amber-700' :
+                                'bg-rose-100 text-rose-700'
+                            }`}>
                             <Cpu className="w-5 h-5" />
                           </div>
                           <div>
@@ -340,6 +333,7 @@ function AdminSensors() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
                           {/* Viewer Info Action */}
                           <button
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip"
@@ -375,23 +369,9 @@ function AdminSensors() {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {modal.type === "view" && (
-                  <span className="flex items-center gap-2">
-                    <Eye className="w-5 h-5 text-blue-500" /> Sensor Details
-                  </span>
-                )}
-                {modal.type === "restart" && (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="w-5 h-5 text-amber-500" /> Restart
-                    Sensor
-                  </span>
-                )}
-                {modal.type === "add" && (
-                  <span className="flex items-center gap-2">
-                    <Plus className="w-5 h-5 text-emerald-500" /> Register New
-                    Sensor
-                  </span>
-                )}
+                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Détails du Capteur</span>}
+                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500" /> Redémarrer Capteur</span>}
+                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500" /> Nouveau Capteur</span>}
               </h3>
               <button
                 onClick={closeModal}
@@ -448,12 +428,10 @@ function AdminSensors() {
                     Are you sure you want to send a remote restart signal to
                     sensor:
                   </p>
-                  <p className="text-lg font-bold text-slate-900 font-mono mb-4">
-                    {modal.sensor.id}
-                  </p>
+                  <p className="text-lg font-bold text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
 
                   <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 mt-6 text-left flex gap-3">
-                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
                     The sensor will be temporarily offline (30-60 seconds)
                     during the hardware reboot.
                   </div>
@@ -522,7 +500,7 @@ function AdminSensors() {
 
             {/* Modal Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-              {modal.type === "view" || modal.type === "add" ? (
+              {(modal.type === "view" || modal.type === "add") ? (
                 <button
                   onClick={closeModal}
                   className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-lg w-full sm:w-auto"

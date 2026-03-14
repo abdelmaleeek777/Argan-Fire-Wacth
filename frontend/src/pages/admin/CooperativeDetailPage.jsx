@@ -34,6 +34,8 @@ import {
   AlertTriangle,
   Activity,
   Calendar,
+  XCircle,
+  Ban
 } from "lucide-react";
 
 const CooperativeDetailPage = () => {
@@ -61,6 +63,25 @@ const CooperativeDetailPage = () => {
       console.error("Error fetching detail", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAction = async (action) => {
+    try {
+      const token = localStorage.getItem("token");
+      let isConfirm = window.confirm(`Are you sure you want to ${action} this cooperative?`);
+      if(!isConfirm) return;
+      await axios.patch(
+        `http://localhost:5000/admin/cooperatives/${id}/${action}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      fetchDetail();
+    } catch (err) {
+      alert(`Error trying to ${action} cooperative`);
+      console.error(err);
     }
   };
 
@@ -124,18 +145,35 @@ const CooperativeDetailPage = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-3">
             <span
               className={`px-4 py-1.5 rounded-full text-sm font-bold border-2 ${
                 cooperative.status === "approved"
-                  ? "bg-emerald-50 border-emerald-100 text-emerald-700"
+                  ? "bg-emerald-50 border-emerald-100 text-emerald-700 shadow-emerald-100 shadow-sm"
                   : cooperative.status === "pending"
-                    ? "bg-amber-50 border-amber-100 text-amber-700"
-                    : "bg-rose-50 border-rose-100 text-rose-700"
+                    ? "bg-amber-50 border-amber-100 text-amber-700 shadow-amber-100 shadow-sm"
+                    : "bg-rose-50 border-rose-100 text-rose-700 shadow-rose-100 shadow-sm"
               }`}
             >
               {cooperative.status.toUpperCase()}
             </span>
+            <div className="flex items-center gap-2 mt-2 bg-white/50 backdrop-blur-md p-1.5 rounded-xl border border-slate-200/60 shadow-sm">
+              {cooperative.status === "pending" && (
+                <>
+                  <button onClick={() => handleAction("approve")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors shadow-sm active:scale-95">
+                    <CheckCircle className="w-4 h-4" /> Approve
+                  </button>
+                  <button onClick={() => handleAction("reject")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors shadow-sm active:scale-95">
+                    <XCircle className="w-4 h-4" /> Reject
+                  </button>
+                </>
+              )}
+              {cooperative.status === "approved" && (
+                <button onClick={() => handleAction("suspend")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-rose-700 rounded-lg transition-colors shadow-sm active:scale-95">
+                  <Ban className="w-4 h-4" /> Suspend
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -302,10 +340,10 @@ const CooperativeDetailPage = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 text-slate-600 font-medium">
-                            {sensor.batteryLevel || "85"}%
-                            <div className="w-8 h-3 bg-slate-100 rounded-full overflow-hidden inline-block border border-slate-200">
+                            {sensor.batteryLevel || 85}%
+                            <div className="w-8 h-3 bg-slate-100 rounded-full overflow-hidden inline-block border border-slate-200 shadow-inner">
                               <div
-                                className="h-full bg-emerald-500"
+                                className={`h-full ${(sensor.batteryLevel || 85) <= 20 ? 'bg-rose-500' : (sensor.batteryLevel || 85) <= 50 ? 'bg-amber-500' : 'bg-emerald-500'}`}
                                 style={{
                                   width: `${sensor.batteryLevel || 85}%`,
                                 }}
