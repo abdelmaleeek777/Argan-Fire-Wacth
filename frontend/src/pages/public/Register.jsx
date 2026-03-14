@@ -71,6 +71,7 @@ const Register = () => {
     phone: "",
     zoneName: "",
     polygon: null, // Will store geojson or array of coords
+    confirmCheck: false,
   });
 
   const nextStep = () => {
@@ -153,7 +154,7 @@ const Register = () => {
     setLoading(true);
     setError("");
     try {
-      await axios.post("http://localhost:5000/register", formData);
+      await axios.post("http://localhost:5000/api/auth/register", formData);
       setSuccess(true);
     } catch (err) {
       setError(

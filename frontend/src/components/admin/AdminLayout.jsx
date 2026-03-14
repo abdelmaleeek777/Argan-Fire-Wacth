@@ -3,11 +3,11 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Users,
   LayoutDashboard,
-  CheckCircle,
-  LogOut,
-  Menu,
   ShieldCheck,
   Building2,
+  Cpu,
+  LogOut,
+  Menu,
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -24,6 +24,7 @@ const AdminLayout = () => {
     { name: "All Cooperatives", path: "/admin/cooperatives", icon: Building2 },
     { name: "Pending Approvals", path: "/admin/pending", icon: ShieldCheck },
     { name: "Users", path: "/admin/users", icon: Users },
+    { name: "Sensors", path: "/admin/sensors", icon: Cpu },
   ];
 
   return (

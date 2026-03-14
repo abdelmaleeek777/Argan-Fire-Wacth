@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
+  Users,
   Building2,
   Cpu,
   AlertTriangle,
@@ -39,6 +40,7 @@ function AdminDashboard() {
         totalCooperatives: 12,
         pendingApprovals: 4,
         activeSensors: 85,
+        totalOwners: 18,
         activeAlerts: 0,
       });
     } finally {
@@ -78,6 +80,13 @@ function AdminDashboard() {
       trend: "98% online",
     },
     {
+      label: "Total Owners",
+      value: stats.totalOwners,
+      icon: Users,
+      color: "bg-purple-50 text-purple-600",
+      trend: "+4 this week",
+    },
+    {
       label: "Active Alerts",
       value: stats.activeAlerts,
       icon: AlertTriangle,
@@ -99,7 +108,7 @@ function AdminDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (

@@ -8,6 +8,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import CooperativesPage from "./pages/admin/CooperativesPage";
 import PendingApprovalsPage from "./pages/admin/PendingApprovalsPage";
 import CooperativeDetailPage from "./pages/admin/CooperativeDetailPage";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminSensors from "./pages/admin/AdminSensors";
 import "./App.css";
 
 function App() {
@@ -56,7 +58,8 @@ function App() {
           <Route path="cooperatives" element={<CooperativesPage />} />
           <Route path="cooperatives/:id" element={<CooperativeDetailPage />} />
           <Route path="pending" element={<PendingApprovalsPage />} />
-          <Route path="users" element={<div>Users Management (TBD)</div>} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="sensors" element={<AdminSensors />} />
         </Route>
       </Routes>
     </div>
