@@ -32,74 +32,24 @@ function AdminSensors() {
     sensor: null,
   });
 
-  useEffect(() => {
-    // Simulate fetching sensors from backend
-    const loadSensors = async () => {
-      setLoading(true);
-      setTimeout(() => {
-        setSensors([
-          {
-            id: "SN-ARG-001",
-            location: "Argan North - Zone A",
-            coordinates: "30.412, -9.598",
-            status: "active",
-            battery: 85,
-            connectivity: "excellent",
-            temperature: 28,
-            humidity: 45,
-            lastPing: "2 mins ago",
-          },
-          {
-            id: "SN-ARG-002",
-            location: "Argan North - Zone B",
-            coordinates: "30.415, -9.601",
-            status: "active",
-            battery: 92,
-            connectivity: "good",
-            temperature: 29,
-            humidity: 43,
-            lastPing: "5 mins ago",
-          },
-          {
-            id: "SN-STH-014",
-            location: "South Grove - Edge",
-            coordinates: "30.291, -9.452",
-            status: "warning",
-            battery: 15,
-            connectivity: "weak",
-            temperature: 34,
-            humidity: 20,
-            lastPing: "1 hour ago",
-          },
-          {
-            id: "SN-VLY-008",
-            location: "Valley Cooperative - Main",
-            coordinates: "30.501, -9.310",
-            status: "offline",
-            battery: 0,
-            connectivity: "offline",
-            temperature: null,
-            humidity: null,
-            lastPing: "2 days ago",
-          },
-          {
-            id: "SN-ATL-022",
-            location: "Atlas High Altitude",
-            coordinates: "31.054, -8.765",
-            status: "active",
-            battery: 78,
-            connectivity: "good",
-            temperature: 22,
-            humidity: 55,
-            lastPing: "10 mins ago",
-          },
-        ]);
-        setLoading(false);
-      }, 800);
-    };
+useEffect(() => {
+  const loadSensors = async () => {
+    setLoading(true);
 
-    loadSensors();
-  }, []);
+    try {
+      const response = await fetch("http://localhost:5000/sensors");
+      const data = await response.json();
+
+      setSensors(data);
+    } catch (error) {
+      console.error("Error loading sensors:", error);
+    }
+
+    setLoading(false);
+  };
+
+  loadSensors();
+}, []);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -174,15 +124,15 @@ function AdminSensors() {
     setModal({ isOpen: false, type: null, sensor: null });
   };
 
-  const filteredSensors = sensors.filter((s) => {
-    const matchesSearch =
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.location.toLowerCase().includes(searchQuery.toLowerCase());
+const filteredSensors = sensors.filter((s) => {
+  const matchesSearch =
+    String(s.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.location.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || s.status === statusFilter;
+  const matchesStatus = statusFilter === "all" || s.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+  return matchesSearch && matchesStatus;
+});
 
   return (
     <div className="space-y-8 relative">

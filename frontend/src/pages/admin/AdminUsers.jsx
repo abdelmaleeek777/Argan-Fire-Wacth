@@ -1,4 +1,6 @@
+import axios from "axios";
 import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import {
   Users,
   Search,
@@ -31,50 +33,31 @@ function AdminUsers() {
     user: null,
   });
 
-  useEffect(() => {
-    // Simulate fetching users from backend
-    const loadUsers = async () => {
-      setLoading(true);
-      setTimeout(() => {
-        setUsers([
-          {
-            id: 1,
-            name: "Amina Youssef",
-            email: "amina@coop-argan.ma",
-            status: "active",
-            cooperative: "Argan North",
-            joinedAt: "Jan 12, 2026",
-          },
-          {
-            id: 2,
-            name: "Kamal Fassi",
-            email: "kamal.f@coopsouth.ma",
-            status: "active",
-            cooperative: "South Argan Grove",
-            joinedAt: "Feb 05, 2026",
-          },
-          {
-            id: 3,
-            name: "Hassan Oulhaj",
-            email: "hassan.test@gmail.com",
-            status: "blocked",
-            cooperative: "Atlas Argan",
-            joinedAt: "Dec 30, 2025",
-          },
-          {
-            id: 4,
-            name: "Nadia Benali",
-            email: "n.benali@argan-val.ma",
-            status: "active",
-            cooperative: "Valley Cooperative",
-            joinedAt: "Mar 01, 2026",
-          },
-        ]);
-        setLoading(false);
-      }, 800);
-    };
-    loadUsers();
-  }, []);
+useEffect(() => {
+
+  const loadUsers = async () => {
+
+    try {
+
+      const res = await axios.get("http://localhost:5000/admin/users");
+
+      setUsers(res.data);
+
+    } catch (error) {
+
+      console.error(error);
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+  loadUsers();
+
+}, []);
 
   const getStatusBadge = (status) => {
     switch (status) {

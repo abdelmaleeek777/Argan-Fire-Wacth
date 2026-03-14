@@ -11,9 +11,13 @@ def create_app():
 
     from app.routes.auth_routes import auth_bp
     from app.routes.mesures_routes import mesures_bp
-
+    from app.routes.admin import admin_bp
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.sensors import sensors_bp
 
     app.register_blueprint(mesures_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
-
+    app.register_blueprint(admin_bp, url_prefix="/admin")
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(sensors_bp)
     return app

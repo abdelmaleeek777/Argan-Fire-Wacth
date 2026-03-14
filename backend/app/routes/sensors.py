@@ -1,24 +1,48 @@
-"""Sensors routes — ingest sensor data."""
-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
+from app.config import get_db_connection
 
 sensors_bp = Blueprint("sensors", __name__)
 
 
-@sensors_bp.route("/reading", methods=["POST"])
-def ingest_reading():
-    """POST /sensors/reading — receive a sensor reading."""
-    data = request.get_json()
+@sensors_bp.route("/sensors", methods=["GET"])
+def get_sensors():
 
-    if not data:
-        return jsonify({"error": "Request body is required"}), 400
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-    required_fields = ["sensor_id", "temperature", "humidity", "latitude", "longitude"]
-    missing = [f for f in required_fields if f not in data]
-    if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+    cursor.execute("""
+        SELECT 
+    c.id_capteur AS id,
+    c.reference_serie AS location,
+    CONCAT(c.latitude, ',', c.longitude) AS coordinates,
+    LOWER(c.statut) AS status,
+    m.temperature_c AS temperature,
+    m.humidite_pct AS humidity,
 
-    # TODO: persist reading to database
-    # TODO: check thresholds and trigger alert if needed
+    CASE
+        WHEN m.qualite_signal >= 80 THEN 'excellent'
+        WHEN m.qualite_signal >= 50 THEN 'good'
+        WHEN m.qualite_signal >= 20 THEN 'weak'
+        ELSE 'offline'
+    END AS connectivity,
 
-    return jsonify({"message": "Reading received", "data": data}), 201
+    m.qualite_signal AS battery,
+    m.horodatage AS lastPing
+
+FROM capteurs c
+LEFT JOIN mesures m 
+ON m.id_capteur = c.id_capteur
+AND m.horodatage = (
+    SELECT MAX(m2.horodatage)
+    FROM mesures m2
+    WHERE m2.id_capteur = c.id_capteur
+)
+ORDER BY m.horodatage DESC
+    """)
+
+    sensors = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(sensors)

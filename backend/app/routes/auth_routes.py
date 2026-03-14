@@ -42,9 +42,9 @@ def register():
 
         # 2. Create User
         cursor.execute("""
-            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash)
-            VALUES (%s, %s, %s, %s)
-        """, (nom, prenom, email, password_hash))
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash,statut)
+            VALUES (%s, %s, %s, %s,%s
+        """, (nom, prenom, email, password_hash,'pending'))
         user_id = cursor.lastrowid
 
         # 3. Assign Role (UTILISATEUR_COOP)
@@ -130,7 +130,7 @@ def login():
         if not user:
             return {"message": "User not found"}, 404
 
-        if user["statut"] != "ACTIF":
+        if user["statut"] not in ["ACTIF", "approved"]:
             return {"message": "Account inactive or suspended"}, 403
 
         if user["mot_de_passe_hash"] != password_hash:
