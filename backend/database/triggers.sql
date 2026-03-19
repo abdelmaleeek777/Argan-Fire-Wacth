@@ -5,29 +5,47 @@ AFTER INSERT ON mesures
 FOR EACH ROW
 BEGIN
     DECLARE v_id_zone INT UNSIGNED;
+    DECLARE v_prob INT;
 
-    -- Récupérer la zone du capteur
+    -- zone
     SELECT id_zone INTO v_id_zone
     FROM capteurs
     WHERE id_capteur = NEW.id_capteur;
 
-    -- Si température > 50°C → alerte CRITIQUE
+    -- 🔥 calcul propagation
+    CALL sp_calcul_propagation(
+        NEW.temperature_c,
+        IFNULL(NEW.humidite_pct,50),
+        IFNULL(NEW.vitesse_vent_kmh,0),
+        v_prob
+    );
+
+    -- 🔥 condition incendie
     IF NEW.temperature_c > 50.00 THEN
+
         INSERT INTO alertes (
             type_alerte,
             niveau_gravite,
             message,
             statut,
             id_mesure,
-            id_zone
+            id_zone,
+            probabilite_propagation
         ) VALUES (
             'AUTOMATIQUE',
             'CRITIQUE',
-            CONCAT('🔥 ALERTE INCENDIE - Température critique : ', NEW.temperature_c, '°C'),
+
+            CONCAT(
+                '🔥 ALERTE INCENDIE - Temp: ', NEW.temperature_c,
+                '°C | Propagation: ', v_prob, '%'
+            ),
+
             'OUVERTE',
             NEW.id_mesure,
-            v_id_zone
+            v_id_zone,
+            v_prob
         );
+
     END IF;
 
 END$$

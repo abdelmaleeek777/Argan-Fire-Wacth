@@ -26,7 +26,7 @@ CREATE TABLE utilisateurs (
     prenom VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
     mot_de_passe_hash VARCHAR(255) NOT NULL,
-    statut ENUM('ACTIF','INACTIF','SUSPENDU') NOT NULL DEFAULT 'ACTIF',
+    statut ENUM('ACTIF','INACTIF','SUSPENDU','approved','pending','rejected') NOT NULL DEFAULT 'ACTIF',
     date_creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     derniere_connexion DATETIME
 ) ENGINE=InnoDB;
@@ -122,6 +122,9 @@ CREATE TABLE cooperatives (
     email_contact VARCHAR(150),
     telephone VARCHAR(20),
     numero_agrement VARCHAR(50) UNIQUE,
+    statut ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    region VARCHAR(100),
+    zone_name VARCHAR(150),
     date_creation DATE NOT NULL DEFAULT (CURDATE()),
     id_responsable INT UNSIGNED NOT NULL,
     id_zone INT UNSIGNED,

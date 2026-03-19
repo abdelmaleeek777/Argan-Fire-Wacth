@@ -25,25 +25,43 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email,
+          password,
+        },
+      );
 
       if (response.status === 200) {
         const data = response.data;
-        console.log("Login successful:", data.message);
-        
-        if (data.user.role === "ADMIN") {
+        const user = data.user;
+console.log("USER FROM BACKEND:", user);
+        // Save user data to localStorage
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("role", user.role);
+        localStorage.setItem("token", "authenticated");
+
+        // Redirect based on role and statut
+        if (user.role === "ADMIN") {
           navigate("/admin/dashboard");
+        } else if (user.statut === "approved") {
+          navigate("/coop/dashboard");
+        } else if (user.statut === "pending") {
+          navigate("/pending");
+        } else if (user.statut === "rejected") {
+          navigate("/rejected");
         } else {
-          navigate("/dashboard");
+          navigate("/coop/dashboard");
         }
       } else {
         setError("Invalid credentials");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to reach the server. Please check your connection.");
+      setError(
+        err.response?.data?.message ||
+          "Unable to reach the server. Please check your connection.",
+      );
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);

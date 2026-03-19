@@ -136,6 +136,16 @@ def login():
         if user["mot_de_passe_hash"] != password_hash:
             return {"message": "Invalid password"}, 401
 
+        # ✅ Récupérer le cooperative_id
+        cursor.execute("""
+            SELECT id_cooperative 
+            FROM cooperatives
+            WHERE id_responsable = %s
+            LIMIT 1
+        """, (user["id_utilisateur"],))
+        membre = cursor.fetchone()
+        cooperative_id = membre["id_cooperative"] if membre else None
+
         # Update last login
         cursor.execute("""
             UPDATE utilisateurs
@@ -144,7 +154,6 @@ def login():
         """, (user["id_utilisateur"],))
         conn.commit()
 
-        # Session (though React usually uses tokens, we'll keep session for now if that's the pattern)
         session["user_id"] = user["id_utilisateur"]
         session["role"] = user["role"]
 
@@ -155,7 +164,8 @@ def login():
                 "nom": user["nom"],
                 "prenom": user["prenom"],
                 "email": user["email"],
-                "role": user["role"]
+                "role": user["role"],
+                "cooperative_id": cooperative_id  # ✅ ajouté
             }
         }, 200
 

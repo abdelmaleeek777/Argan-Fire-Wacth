@@ -89,7 +89,29 @@ VALUES(
     p_responsable
 );
 
+CREATE PROCEDURE sp_calcul_propagation(
+    IN p_temperature DECIMAL(5,2),
+    IN p_humidite DECIMAL(5,2),
+    IN p_vent DECIMAL(6,2),
+    OUT p_prob INT
+)
+BEGIN
+
+    DECLARE v_prob INT DEFAULT 0;
+
+    -- Température (50%)
+    SET v_prob = v_prob + LEAST(p_temperature * 0.5, 50);
+
+    -- Vent (30%)
+    SET v_prob = v_prob + LEAST(p_vent * 0.3, 30);
+
+    -- Humidité (inverse)
+    SET v_prob = v_prob + LEAST((100 - p_humidite) * 0.2, 20);
+
+    SET p_prob = ROUND(v_prob);
+
 END$$
+
 
 CREATE PROCEDURE sp_alertes_zone(
     IN p_id_zone INT
