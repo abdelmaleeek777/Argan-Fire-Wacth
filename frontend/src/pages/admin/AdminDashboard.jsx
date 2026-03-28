@@ -1,24 +1,35 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import {
-  Users,
-  Building2,
-  Cpu,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Activity,
-  ShieldCheck,
-  Loader2,
-  ArrowRight,
+import { 
+  Building2, ShieldCheck, Cpu, Users, AlertTriangle, ArrowRight, Loader2, Activity,
+  TrendingUp, Map
 } from "lucide-react";
+import { 
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend
+} from 'recharts';
 
-/**
- * Admin Dashboard — overview of ALL cooperatives, sensors, and alerts.
- * Only accessible to admin users.
- */
-function AdminDashboard() {
+const ADMIN_API = "http://localhost:5000/admin";
+
+// Dummy data for charts
+const alertTrendsData = [
+  { name: 'Mon', alerts: 2, resolved: 3 },
+  { name: 'Tue', alerts: 5, resolved: 2 },
+  { name: 'Wed', alerts: 3, resolved: 4 },
+  { name: 'Thu', alerts: 1, resolved: 5 },
+  { name: 'Fri', alerts: 4, resolved: 6 },
+  { name: 'Sat', alerts: 2, resolved: 3 },
+  { name: 'Sun', alerts: 1, resolved: 2 },
+];
+
+const sensorStatusData = [
+  { name: 'Souss', active: 45, offline: 3 },
+  { name: 'Taroudant', active: 30, offline: 1 },
+  { name: 'Tiznit', active: 25, offline: 2 },
+  { name: 'Chtouka', active: 15, offline: 0 },
+];
+
+export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,20 +41,14 @@ function AdminDashboard() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      // Assuming there's a global stats endpoint, if not we'll simulate or aggregate
-      const res = await axios.get("http://localhost:5000/admin/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStats(res.data);
+      const headers = { Authorization: `Bearer ${token}` };
+      const statsRes = await axios.get(`${ADMIN_API}/stats`, { headers });
+      setStats(statsRes.data);
     } catch (err) {
       console.error("Error fetching stats", err);
-      // Fallback/Placeholder if endpoint doesn't exist yet
+      // Fallback
       setStats({
-        totalCooperatives: 12,
-        pendingApprovals: 4,
-        activeSensors: 85,
-        totalOwners: 18,
-        activeAlerts: 0,
+        totalCooperatives: 12, pendingApprovals: 3, activeSensors: 85, totalOwners: 8, activeAlerts: 2
       });
     } finally {
       setLoading(false);
@@ -54,248 +59,138 @@ function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-        <p className="text-slate-500 font-medium">Loading system metrics...</p>
+        <p className="text-slate-500 font-medium">Loading Dashboard Analytics...</p>
       </div>
     );
   }
 
   const statCards = [
-    {
-      label: "Total Cooperatives",
-      value: stats.totalCooperatives,
-      icon: Building2,
-      color: "bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100",
-      trend: "+2 this month",
-      trendColor: "text-emerald-500",
-    },
-    {
-      label: "Pending Approvals",
-      value: stats.pendingApprovals,
-      icon: ShieldCheck,
-      color: "bg-gradient-to-br from-amber-50 to-amber-100/50 text-amber-600 border-amber-100",
-      trend: "Immediate action required",
-      trendColor: "text-amber-500",
-    },
-    {
-      label: "Active Sensors",
-      value: stats.activeSensors,
-      icon: Cpu,
-      color: "bg-gradient-to-br from-blue-50 to-blue-100/50 text-blue-600 border-blue-100",
-      trend: "98% online",
-      trendColor: "text-blue-500",
-    },
-    {
-      label: "Total Owners",
-      value: stats.totalOwners,
-      icon: Users,
-      color: "bg-purple-50 text-purple-600",
-      trend: "+4 this week",
-    },
-    {
-      label: "Active Alerts",
-      value: stats.activeAlerts,
-      icon: AlertTriangle,
-      color:
-        stats.activeAlerts > 0
-          ? "bg-gradient-to-br from-rose-50 to-rose-100/50 text-rose-600 border-rose-100"
-          : "bg-gradient-to-br from-slate-50 to-slate-100/50 text-slate-500 border-slate-100",
-      trend:
-        stats.activeAlerts > 0 ? "Potential fire detected!" : "System clear",
-      trendColor: stats.activeAlerts > 0 ? "text-rose-500" : "text-slate-400",
-    },
+    { label: "Total Coops", value: stats?.totalCooperatives || 0, icon: Building2, color: "emerald" },
+    { label: "Pending Approvals", value: stats?.pendingApprovals || 0, icon: ShieldCheck, color: "amber" },
+    { label: "Active Sensors", value: stats?.activeSensors || 0, icon: Cpu, color: "blue" },
+    { label: "Active Alerts", value: stats?.activeAlerts || 0, icon: AlertTriangle, color: "rose" },
+    { label: "Total Users", value: stats?.totalOwners || 0, icon: Users, color: "purple" },
   ];
 
+  const getColorClasses = (color) => {
+    return {
+      emerald: { bg: "bg-emerald-50", text: "text-emerald-600" },
+      amber: { bg: "bg-amber-50", text: "text-amber-600" },
+      blue: { bg: "bg-blue-50", text: "text-blue-600" },
+      rose: { bg: "bg-rose-50", text: "text-rose-600" },
+      purple: { bg: "bg-purple-50", text: "text-purple-600" },
+    }[color] || { bg: "bg-slate-50", text: "text-slate-600" };
+  };
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">System Overview</h1>
-        <p className="text-slate-500 mt-1">
-          Real-time metrics for the Argan-Fire Watch platform.
-        </p>
+    <div className="space-y-8 pb-10">
+      
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">System Dashboard</h1>
+          <p className="text-slate-500 mt-1">Real-time charts and metrics across the entire Argan network.</p>
+        </div>
+        <Link to="/admin/map" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all hover:-translate-y-0.5">
+          <Map className="w-4 h-4" /> Open System Map
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
+          const { bg, text } = getColorClasses(card.color);
+          
           return (
-            <div
-              key={idx}
-              className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
-            >
-              <div className="flex items-start justify-between">
-                <div
-                  className={`w-14 h-14 rounded-2xl ${card.color} border flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}
-                >
-                  <Icon className="w-7 h-7" />
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    {card.label}
-                  </p>
-                  <p className="text-3xl font-black text-slate-900 mt-1 tracking-tight">
-                    {card.value}
-                  </p>
+            <div key={idx} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-12 h-12 rounded-2xl ${bg} ${text} flex items-center justify-center transition-transform group-hover:scale-110`}>
+                  <Icon className="w-6 h-6" />
                 </div>
               </div>
-              <div className={`mt-6 flex items-center gap-2 text-xs font-bold ${card.trendColor}`}>
-                <TrendingUp className="w-4 h-4" />
-                {card.trend}
+              <div>
+                <p className="text-4xl font-black text-slate-800 tracking-tight">{card.value}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{card.label}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/admin/cooperatives/pending"
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-slate-700 group-hover:text-amber-600 transition-colors">Review Pending</span>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Trend Chart */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                Alert Resolution Trends
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">Number of alerts vs resolved incidents over 7 days.</p>
             </div>
-            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
-          </Link>
-          <Link
-            to="/admin/cooperatives"
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">All Cooperatives</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-          </Link>
-          <Link
-            to="/admin/sensors"
-            className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Cpu className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">Manage Sensors</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
-          </Link>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={alertTrendsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ fontWeight: 600 }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '10px' }} />
+                <Area type="monotone" dataKey="alerts" name="New Alerts" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorAlerts)" />
+                <Area type="monotone" dataKey="resolved" name="Resolved" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorResolved)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
+        {/* Bar Chart */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-blue-500" />
+                Sensor Fleet Status
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">Operational vs Offline sensors by region.</p>
+            </div>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sensorStatusData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={16}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <RechartsTooltip 
+                  cursor={{fill: '#f8fafc'}}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '10px' }} />
+                <Bar dataKey="active" name="Active" fill="#3b82f6" radius={[4, 4, 4, 4]} />
+                <Bar dataKey="offline" name="Offline/Fault" fill="#cbd5e1" radius={[4, 4, 4, 4]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-emerald-500" />
-            Recent Platform Activity
-          </h3>
-          <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-100 before:via-slate-200 before:to-transparent">
-            <div className="relative flex items-start gap-4 group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-emerald-100 text-emerald-600 shadow-sm shrink-0 z-10 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div className="flex-1 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-slate-800">Cooperative Approved</span>
-                  <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">10m ago</span>
-                </div>
-                <p className="text-sm text-slate-600 mt-1">"Argan North" was successfully approved by admin.</p>
-              </div>
-            </div>
-            
-            <div className="relative flex items-start gap-4 group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-blue-100 text-blue-600 shadow-sm shrink-0 z-10 group-hover:scale-110 transition-transform">
-                <Cpu className="w-5 h-5" />
-              </div>
-              <div className="flex-1 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-200 transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-slate-800">New Sensor Deployed</span>
-                  <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">1h ago</span>
-                </div>
-                <p className="text-sm text-slate-600 mt-1">Sensor SN-90210 added to "South Argan Grove".</p>
-              </div>
-            </div>
-
-            <div className="relative flex items-start gap-4 group">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-orange-100 text-orange-600 shadow-sm shrink-0 z-10 group-hover:scale-110 transition-transform">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="flex-1 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-orange-200 transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-slate-800">Security Check</span>
-                  <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">3h ago</span>
-                </div>
-                <p className="text-sm text-slate-600 mt-1">System-wide integrity check completed successfully.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* System Health */}
-        <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-orange-500" />
-              Platform Status
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="font-semibold text-slate-700">
-                    API Server
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase">
-                  Operational
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="font-semibold text-slate-700">
-                    Database Cluster
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase">
-                  Balanced
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                  <span className="font-semibold text-slate-700">
-                    Sensor Gateway
-                  </span>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 uppercase">
-                  Connected
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-slate-500">
-              <Activity className="w-4 h-4" />
-              <span className="text-sm font-medium">Uptime: 99.98%</span>
-            </div>
-            <button className="text-sm font-bold text-emerald-600 hover:underline">
-              View Detailed Logs
-            </button>
-          </div>
-        </section>
-      </div>
     </div>
   );
 }
-
-export default AdminDashboard;

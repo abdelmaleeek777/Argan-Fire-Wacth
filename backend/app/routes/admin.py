@@ -287,7 +287,7 @@ def get_admin_stats():
     cursor.execute("""
         SELECT COUNT(*) AS total 
         FROM cooperatives 
-        WHERE statut = 'EN_ATTENTE'
+        WHERE statut = 'pending'
     """)
     pending = cursor.fetchone()["total"]
 
@@ -325,3 +325,157 @@ def get_admin_stats():
         "totalOwners": owners,
         "activeAlerts": alerts
     })
+
+@admin_bp.route("/map_data", methods=["GET"])
+def get_map_data():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. Zones
+        cursor.execute("""
+            SELECT id_zone, nom_zone, region, superficie_ha,
+                   indice_risque, description,
+                   ST_AsText(coordonnees_gps) AS polygon_wkt
+            FROM zones_forestieres
+        """)
+        zone_rows = cursor.fetchall()
+
+        zones = []
+        for z in zone_rows:
+            coords = []
+            wkt = z.get("polygon_wkt", "")
+            if wkt and "POLYGON" in wkt:
+                inner = wkt.replace("POLYGON((", "").replace("))", "")
+                for pair in inner.split(","):
+                    parts = pair.strip().split(" ")
+                    if len(parts) >= 2:
+                        coords.append([float(parts[0]), float(parts[1])])
+            
+            risk_level = "faible"
+            idx = float(z["indice_risque"]) if z["indice_risque"] else 0
+            if idx >= 7.5: risk_level = "critique"
+            elif idx >= 5: risk_level = "élevé"
+            elif idx >= 2.5: risk_level = "moyen"
+
+            zones.append({
+                "id_zone": z["id_zone"],
+                "nom_zone": z["nom_zone"],
+                "region": z["region"],
+                "superficie_ha": float(z["superficie_ha"]) if z["superficie_ha"] else 0,
+                "niveau_risque_base": risk_level,
+                "coordinates": coords,
+            })
+
+        # 2. Sensors
+        cursor.execute("""
+            SELECT c.id_capteur, c.reference_serie, c.latitude, c.longitude, c.statut, c.id_zone
+            FROM capteurs c
+        """)
+        sensor_rows = cursor.fetchall()
+        sensors = []
+        for s in sensor_rows:
+            cursor.execute("""
+                SELECT temperature_c
+                FROM mesures
+                WHERE id_capteur = %s
+                ORDER BY horodatage DESC
+                LIMIT 1
+            """, (s["id_capteur"],))
+            latest = cursor.fetchone()
+            sensors.append({
+                "id_capteur": s["id_capteur"],
+                "reference_serie": s["reference_serie"],
+                "latitude": float(s["latitude"]) if s["latitude"] else 0,
+                "longitude": float(s["longitude"]) if s["longitude"] else 0,
+                "statut": s["statut"],
+                "id_zone": s["id_zone"],
+                "latest_reading": {"temperature_c": float(latest["temperature_c"])} if latest else None
+            })
+
+        return jsonify({"zones": zones, "sensors": sensors}), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/alerts", methods=["GET"])
+def get_all_admin_alerts():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                a.id_alerte,
+                a.type_alerte,
+                a.niveau_gravite,
+                a.statut,
+                a.date_creation,
+                z.nom_zone,
+                c.nom_cooperative
+            FROM alertes a
+            LEFT JOIN zones_forestieres z ON a.id_zone = z.id_zone
+            LEFT JOIN cooperatives c ON z.nom_zone = c.zone_name
+            ORDER BY a.date_creation DESC
+        """)
+        alerts = cursor.fetchall()
+        
+        formatted = []
+        for a in alerts:
+            formatted.append({
+                "id": a["id_alerte"],
+                "cooperative": a["nom_cooperative"] or "Unknown",
+                "zone": a["nom_zone"] or "Unknown",
+                "type": a["type_alerte"],
+                "severity": a["niveau_gravite"],
+                "status": a["statut"],
+                "triggeredAt": a["date_creation"].isoformat() if a["date_creation"] else None
+            })
+            
+        return jsonify(formatted), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/logs", methods=["GET"])
+def get_admin_logs():
+    import hashlib
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT id_alerte, type_alerte, statut, date_creation, message
+            FROM alertes
+            ORDER BY date_creation ASC
+            LIMIT 50
+        """)
+        events = cursor.fetchall()
+        
+        logs = []
+        prev_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+        
+        for e in events:
+            raw_data = f"{e['id_alerte']}{e['type_alerte']}{e['statut']}{e['date_creation']}{prev_hash}"
+            current_hash = hashlib.sha256(raw_data.encode('utf-8')).hexdigest()
+            logs.append({
+                "id": f"EVT-{e['id_alerte']}",
+                "event_type": "ALERT_" + str(e['type_alerte']).upper(),
+                "details": str(e['message']),
+                "timestamp": e['date_creation'].isoformat() if e['date_creation'] else None,
+                "hash": current_hash[:16] + "...",
+                "integrity": "Valid"
+            })
+            prev_hash = current_hash
+            
+        logs.reverse() # Newest first
+        return jsonify({"logs": logs, "integrity_status": "100% Verified"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()

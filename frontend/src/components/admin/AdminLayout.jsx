@@ -8,6 +8,9 @@ import {
   Cpu,
   LogOut,
   Menu,
+  Map,
+  AlertTriangle,
+  FileText
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -25,6 +28,9 @@ const AdminLayout = () => {
     { name: "Pending Approvals", path: "/admin/pending", icon: ShieldCheck },
     { name: "Users", path: "/admin/users", icon: Users },
     { name: "Sensors", path: "/admin/sensors", icon: Cpu },
+    { name: "Alerts", path: "/admin/alerts", icon: AlertTriangle },
+    { name: "Fire Logs", path: "/admin/logs", icon: FileText },
+    { name: "System Map", path: "/admin/map", icon: Map },
   ];
 
   return (
