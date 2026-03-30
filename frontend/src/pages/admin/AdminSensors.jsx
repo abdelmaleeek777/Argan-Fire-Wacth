@@ -85,7 +85,7 @@ useEffect(() => {
     }
   };
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (modal.type === "restart" && modal.sensor) {
       // Simulate restarting the sensor (changing status temporarily to indicate action)
       setSensors(
@@ -102,17 +102,22 @@ useEffect(() => {
         ),
       );
     } else if (modal.type === "add" && modal.sensor) {
-      const newSensor = {
-        ...modal.sensor,
-        status: "active",
-        battery: 100,
-        connectivity: "excellent",
-        temperature: 25,
-        humidity: 50,
-        lastPing: "Just now",
-      };
-      setSensors([...sensors, newSensor]);
-    }
+  try {
+    const response = await fetch("http://localhost:5000/sensors", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(modal.sensor),
+    });
+
+    const data = await response.json();
+
+    setSensors([...sensors, data]); // ajouter depuis backend
+  } catch (error) {
+    console.error("Error adding sensor:", error);
+  }
+}
     closeModal();
   };
 
@@ -147,13 +152,7 @@ const filteredSensors = sensors.filter((s) => {
             Monitor status, battery, and connectivity of deployed sensors.
           </p>
         </div>
-        <button
-          onClick={() => openModal("add")}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Sensor
-        </button>
+
       </div>
 
       {/* Filters and Search */}
@@ -319,9 +318,9 @@ const filteredSensors = sensors.filter((s) => {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Détails du Capteur</span>}
-                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500" /> Redémarrer Capteur</span>}
-                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500" /> Nouveau Capteur</span>}
+                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Sensor details</span>}
+                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500" /> Restart Sensor</span>}
+                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500" />New sensor</span>}
               </h3>
               <button
                 onClick={closeModal}
@@ -389,90 +388,164 @@ const filteredSensors = sensors.filter((s) => {
               )}
 
               {modal.type === "add" && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Sensor ID
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-                      placeholder="e.g. SN-ARG-999"
-                      value={modal.sensor.id}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          sensor: { ...modal.sensor, id: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      Location Name
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-                      placeholder="e.g. West Ridge - Zone C"
-                      value={modal.sensor.location}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          sensor: { ...modal.sensor, location: e.target.value },
-                        })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                      GPS Coordinates
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-                      placeholder="e.g. 30.123, -9.456"
-                      value={modal.sensor.coordinates}
-                      onChange={(e) =>
-                        setModal({
-                          ...modal,
-                          sensor: {
-                            ...modal.sensor,
-                            coordinates: e.target.value,
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+  <div className="space-y-4">
+    {/* Serial Number */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Serial Number
+      </label>
+      <input
+        type="text"
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+        placeholder="e.g. SN-ARG-999"
+        value={modal.sensor.id || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, id: e.target.value } })
+        }
+      />
+    </div>
+
+    {/* Sensor Type — SELECT */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Sensor Type
+      </label>
+      <select
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+        value={modal.sensor.type || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, type: e.target.value } })
+        }
+      >
+        <option value="">-- Select a type --</option>
+        <option value="temperature">Temperature</option>
+        <option value="multi">Multi-parameter</option>
+        <option value="wind">Wind</option>
+        <option value="humidity">Humidity</option>
+      </select>
+    </div>
+
+    {/* Model */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Model
+      </label>
+      <input
+        type="text"
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+        placeholder="e.g. SensorPro X200"
+        value={modal.sensor.model || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, model: e.target.value } })
+        }
+      />
+    </div>
+
+    {/* Latitude & Longitude side by side */}
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">
+          Latitude
+        </label>
+        <input
+          type="text"
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+          placeholder="e.g. 30.123"
+          value={modal.sensor.latitude || ""}
+          onChange={(e) =>
+            setModal({ ...modal, sensor: { ...modal.sensor, latitude: e.target.value } })
+          }
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-bold text-slate-700 mb-1">
+          Longitude
+        </label>
+        <input
+          type="text"
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+          placeholder="e.g. -9.456"
+          value={modal.sensor.longitude || ""}
+          onChange={(e) =>
+            setModal({ ...modal, sensor: { ...modal.sensor, longitude: e.target.value } })
+          }
+        />
+      </div>
+    </div>
+
+    {/* Altitude */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Altitude (m)
+      </label>
+      <input
+        type="text"
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
+        placeholder="e.g. 150"
+        value={modal.sensor.altitude || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, altitude: e.target.value } })
+        }
+      />
+    </div>
+
+    {/* Status — SELECT */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Status
+      </label>
+      <select
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+        value={modal.sensor.status || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, status: e.target.value } })
+        }
+      >
+        <option value="">-- Select a status --</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="maintenance">Under Maintenance</option>
+      </select>
+    </div>
+
+    {/* Cooperative */}
+    <div>
+      <label className="block text-sm font-bold text-slate-700 mb-1">
+        Cooperative
+      </label>
+      <input
+        type="text"
+        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+        placeholder="e.g. Cooperative Name"
+        value={modal.sensor.cooperative || ""}
+        onChange={(e) =>
+          setModal({ ...modal, sensor: { ...modal.sensor, cooperative: e.target.value } })
+        }
+      />
+    </div>
+  </div>
+)}
+</div>
 
             {/* Modal Footer */}
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-              {(modal.type === "view" || modal.type === "add") ? (
-                <button
-                  onClick={closeModal}
-                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors shadow-lg w-full sm:w-auto"
-                >
-                  Close
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={closeModal}
-                    className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmAction}
-                    className="px-6 py-2.5 font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-600/20 rounded-xl transition-all flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" /> Confirm Restart
-                  </button>
-                </>
-              )}
+{modal.type === "add" && (
+  <>
+    <button
+      onClick={closeModal}
+      className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl"
+    >
+      Cancel
+    </button>
+
+    <button
+      onClick={handleConfirmAction}
+      className="px-6 py-2.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl"
+    >
+      Add Sensor
+    </button>
+  </>
+)}
             </div>
           </div>
         </div>

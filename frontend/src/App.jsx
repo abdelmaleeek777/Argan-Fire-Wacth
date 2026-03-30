@@ -26,6 +26,9 @@ import CoopAlerts from "./pages/cooperative/CoopAlerts";
 import CoopMap from "./pages/cooperative/CoopMap";
 import CoopProfile from "./pages/cooperative/CoopProfile";
 
+// Pompier
+import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
+
 import "./App.css";
 
 function App() {
@@ -105,6 +108,9 @@ function App() {
           <Route path="map" element={<CoopMap />} />
           <Route path="profile" element={<CoopProfile />} />
         </Route>
+
+        {/* Pompier Routes */}
+        <Route path="/pompier/dashboard" element={<FirefighterDashboard />} />
       </Routes>
     </div>
   );

@@ -3,6 +3,7 @@ from app.config import get_db_connection
 import hashlib
 import json
 
+
 auth_bp = Blueprint("auth", __name__)
 
 
@@ -43,7 +44,7 @@ def register():
         # 2. Create User
         cursor.execute("""
             INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash,statut)
-            VALUES (%s, %s, %s, %s,%s
+            VALUES (%s, %s, %s, %s,%s)
         """, (nom, prenom, email, password_hash,'pending'))
         user_id = cursor.lastrowid
 
