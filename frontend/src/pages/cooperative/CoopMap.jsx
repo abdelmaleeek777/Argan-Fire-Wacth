@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Map, Layers, Info, ChevronLeft, Loader2, WifiOff } from "lucide-react";
+import { Map as MapIcon, Layers, Info, ChevronLeft, Loader2, WifiOff } from "lucide-react";
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -63,7 +63,7 @@ export default function CoopMap() {
 
   const fetchData = async () => {
     if (!cooperativeId) {
-      setError("No cooperative ID found.");
+      setError("Aucun identifiant de coopérative trouvé.");
       setLoading(false);
       return;
     }
@@ -72,12 +72,18 @@ export default function CoopMap() {
       const data = res.data;
       setCooperative(data.cooperative);
       setZones(data.zones || []);
-      setSensors(data.sensors || []);
-      setAlerts(data.alerts || []);
+      
+      // Fetch sensors separately to be sure we get all for all zones
+      const sensRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/sensors`);
+      setSensors(sensRes.data);
+      
+      const alRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/alerts`);
+      setAlerts(alRes.data);
+      
       setError(null);
     } catch (err) {
       console.error("Map fetch error:", err);
-      setError("Failed to load map data");
+      setError("Erreur de chargement des données spatiales.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +91,7 @@ export default function CoopMap() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -115,7 +121,7 @@ export default function CoopMap() {
       if (selectedZoneId) {
         const z = zonesWithPolygons.find(zone => zone.id_zone === selectedZoneId);
         if (z && z.leafletCoords.length > 0) {
-          map.flyTo(z.center, 13, { duration: 1.5 });
+          map.flyTo(z.center, 14, { duration: 1.5 });
         }
       } else if (defaultCenter) {
         map.flyTo(defaultCenter, 11, { duration: 1.5 });
@@ -124,31 +130,27 @@ export default function CoopMap() {
     return null;
   }
 
-  if (loading) {
+  if (loading && !cooperative) {
     return (
-      <div className="bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-500 font-medium">Loading map data...</p>
-        </div>
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+        <p className="text-slate-500 font-medium">Initialisation du renseignement spatial...</p>
       </div>
     );
   }
 
   if (error && zones.length === 0) {
     return (
-      <div className="bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-3xl border border-slate-200 shadow-sm max-w-md">
-          <WifiOff className="w-10 h-10 text-rose-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-slate-800 mb-2">Connection Error</h2>
-          <p className="text-slate-500 text-sm mb-6">{error}</p>
-          <button
-            onClick={() => { setLoading(true); fetchData(); }}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition-colors"
-          >
-            Retry
-          </button>
-        </div>
+      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-12">
+        <WifiOff className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+        <h2 className="text-lg font-bold text-rose-800">Erreur de connexion</h2>
+        <p className="text-rose-600 mt-2 text-sm">{error}</p>
+        <button
+          onClick={() => { setLoading(true); fetchData(); }}
+          className="mt-6 px-6 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }
@@ -156,287 +158,288 @@ export default function CoopMap() {
   // Count active alerts per zone
   const alertsByZone = {};
   alerts.forEach(a => {
+    // Map alert to zone index
     const zoneMatch = zones.find(z => z.nom_zone === a.zone);
     if (zoneMatch) {
-      alertsByZone[zoneMatch.id_zone] = (alertsByZone[zoneMatch.id_zone] || 0) + (a.statut === "active" ? 1 : 0);
+      alertsByZone[zoneMatch.id_zone] = (alertsByZone[zoneMatch.id_zone] || 0) + (a.statut === "OUVERTE" ? 1 : 0);
     }
   });
 
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-900 pb-12 flex flex-col">
-
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-6 shadow-sm relative z-10">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white flex items-center justify-center shadow-emerald-200 shadow-md">
-              <Map className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Carte des zones forestières</h1>
-              <p className="text-sm font-medium text-slate-500 mt-0.5">
-                {cooperative?.region || "—"} · {cooperative?.nom_cooperative || "—"}
-              </p>
-            </div>
+    <div className="flex flex-col h-[calc(100vh-120px)] animate-in fade-in duration-500">
+      {/* Header Inline */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200">
+            <MapIcon className="w-6 h-6" />
           </div>
-          <div className="flex gap-2 relative">
-            <button
-              onClick={() => setShowCapteurs(!showCapteurs)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
-                showCapteurs
-                  ? "bg-slate-800 text-white border-slate-800 hover:bg-slate-700 shadow-sm"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              {showCapteurs ? "Masquer capteurs" : "Afficher capteurs"}
-            </button>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Intelligence Spatiale</h1>
+            <p className="text-sm font-medium text-slate-500 mt-0.5">
+              {cooperative?.nom_cooperative} · {zones.length} Zones surveillées
+            </p>
           </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCapteurs(!showCapteurs)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black border transition-all ${
+              showCapteurs
+                ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            {showCapteurs ? "Masquer Capteurs" : "Afficher Capteurs"}
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 max-w-6xl w-full mx-auto p-6 flex flex-col lg:flex-row gap-6">
-
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         {/* Leaflet Map */}
-        <div className="flex-[2] relative">
-          <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm h-[600px] w-full relative">
-
-            {/* Legend */}
-            <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-100 shadow-sm">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                <Info className="w-3 h-3" /> Niveau de risque
-              </div>
-              {Object.entries(risqueBadge).map(([k, v]) => (
-                <div key={k} className="flex items-center gap-2 mb-1.5">
-                  <div className="w-3 h-3 rounded-[4px]" style={{ backgroundColor: risqueFill[k]?.stroke, opacity: 0.8 }} />
-                  <span className={`text-xs font-bold capitalize ${v.color}`}>{k}</span>
-                </div>
-              ))}
-
-              {showCapteurs && (
-                <div className="border-t border-slate-100 mt-3 pt-3">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
-                    <span className="text-xs font-semibold text-slate-600">Capteur actif</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm ring-2 ring-rose-200" />
-                    <span className="text-xs font-semibold text-slate-600">En alerte</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                    <span className="text-xs font-semibold text-slate-600">En panne</span>
-                  </div>
-                </div>
-              )}
+        <div className="flex-[3] relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+          {/* Legend Overlay */}
+          <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-100 shadow-xl max-w-[180px]">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 underline decoration-emerald-500 underline-offset-4">
+              <Info className="w-3 h-3 text-emerald-500" /> Niveaux de Risque
             </div>
+            {Object.entries(risqueBadge).map(([k, v]) => (
+              <div key={k} className="flex items-center gap-2 mb-2 last:mb-0">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: risqueFill[k]?.stroke }} />
+                <span className={`text-[10px] font-bold capitalize ${v.color} tracking-tight`}>{k}</span>
+              </div>
+            ))}
 
-            <MapContainer
-              center={defaultCenter}
-              zoom={11}
-              className="w-full h-full z-0"
-              zoomControl={false}
-            >
-              <MapController selectedZoneId={selectedZone} />
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              {/* Zone Polygons */}
-              {zonesWithPolygons.map(z => {
-                if (z.leafletCoords.length === 0) return null;
-                const rc = risqueFill[z.niveau_risque_base] || {};
-                const isSelected = selectedZone === z.id_zone;
-
-                return (
-                  <Polygon
-                    key={z.id_zone}
-                    positions={z.leafletCoords}
-                    pathOptions={{
-                      fillColor: rc.stroke,
-                      fillOpacity: isSelected ? 0.4 : 0.2,
-                      color: isSelected ? "#1e293b" : rc.stroke,
-                      weight: isSelected ? 3 : 2,
-                    }}
-                    eventHandlers={{
-                      click: () => setSelectedZone(isSelected ? null : z.id_zone),
-                    }}
-                  >
-                    <Popup className="rounded-xl">
-                      <div className="font-bold text-slate-800">{z.nom_zone}</div>
-                      <div className="text-sm text-slate-600">{z.superficie_ha} ha</div>
-                    </Popup>
-                  </Polygon>
-                );
-              })}
-
-              {/* Sensors on map */}
-              {showCapteurs && sensors.map(s => {
-                const isInactive = s.statut !== "ACTIF";
-                const hasAlert = s.latest_reading && s.latest_reading.temperature_c > 60;
-                const color = isInactive ? "#94a3b8" : hasAlert ? "#ef4444" : "#10b981";
-
-                const customIcon = L.divIcon({
-                  className: 'custom-div-icon',
-                  html: `<div style="
-                    width: 16px;
-                    height: 16px;
-                    background-color: ${color};
-                    border: 2px solid white;
-                    border-radius: 50%;
-                    box-shadow: 0 0 ${hasAlert ? '15px 5px rgba(239, 68, 68, 0.6)' : '5px rgba(0,0,0,0.3)'};
-                    ${hasAlert ? 'animation: pulse 2s infinite;' : ''}
-                  "></div>`,
-                  iconSize: [16, 16],
-                  iconAnchor: [8, 8]
-                });
-
-                return (
-                  <Marker
-                    key={s.id_capteur}
-                    position={[s.latitude, s.longitude]}
-                    icon={customIcon}
-                  >
-                    <Popup>
-                      <div className="text-center">
-                        <div className="text-xs font-bold text-slate-500">{s.reference_serie}</div>
-                        {s.latest_reading ? (
-                          <div className={`text-lg font-black ${hasAlert ? "text-rose-600" : "text-slate-800"}`}>
-                            {s.latest_reading.temperature_c}°C
-                          </div>
-                        ) : (
-                          <div className="text-sm text-slate-400">No data</div>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                );
-              })}
-            </MapContainer>
+            {showCapteurs && (
+              <div className="border-t border-slate-100 mt-4 pt-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+                  <span className="text-[10px] font-bold text-slate-600">Actif</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white shadow-sm animate-pulse" />
+                  <span className="text-[10px] font-bold text-rose-600">Alarme</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 border-2 border-white" />
+                  <span className="text-[10px] font-bold text-slate-400">Panne</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          <MapContainer
+            center={defaultCenter}
+            zoom={11}
+            className="w-full h-full z-0"
+            zoomControl={false}
+          >
+            <MapController selectedZoneId={selectedZone} />
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+            {/* Zone Polygons */}
+            {zonesWithPolygons.map(z => {
+              if (z.leafletCoords.length === 0) return null;
+              const rc = risqueFill[z.niveau_risque_base] || risqueFill.faible;
+              const isSelected = selectedZone === z.id_zone;
+
+              return (
+                <Polygon
+                  key={z.id_zone}
+                  positions={z.leafletCoords}
+                  pathOptions={{
+                    fillColor: rc.stroke,
+                    fillOpacity: isSelected ? 0.4 : 0.15,
+                    color: isSelected ? "#065f46" : rc.stroke,
+                    weight: isSelected ? 4 : 2,
+                    dashArray: isSelected ? "" : "5, 5"
+                  }}
+                  eventHandlers={{
+                    click: () => setSelectedZone(isSelected ? null : z.id_zone),
+                  }}
+                >
+                  <Popup className="custom-popup">
+                    <div className="p-1">
+                      <div className="font-black text-slate-800 text-sm">{z.nom_zone}</div>
+                      <div className="text-xs font-bold text-emerald-600 mt-1">{z.superficie_ha} hectares</div>
+                      <div className="mt-2 text-[10px] font-black uppercase text-slate-400 border-t pt-2">Risque Actuel: {z.indice_risque}</div>
+                    </div>
+                  </Popup>
+                </Polygon>
+              );
+            })}
+
+            {/* Sensors on map */}
+            {showCapteurs && sensors.map(s => {
+              const isInactive = s.statut !== "ACTIF";
+              const hasAlert = s.latest_reading && s.latest_reading.temperature_c > 50;
+              const color = isInactive ? "#94a3b8" : hasAlert ? "#ef4444" : "#10b981";
+
+              const customIcon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="
+                  width: 14px;
+                  height: 14px;
+                  background-color: ${color};
+                  border: 2px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 0 ${hasAlert ? '12px 4px rgba(239, 68, 68, 0.5)' : '4px rgba(0,0,0,0.2)'};
+                  ${hasAlert ? 'animation: pulse 1.5s infinite;' : ''}
+                "></div>`,
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+              });
+
+              return (
+                <Marker
+                  key={s.id_capteur}
+                  position={[s.latitude, s.longitude]}
+                  icon={customIcon}
+                >
+                  <Popup>
+                    <div className="text-center p-1">
+                      <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{s.reference_serie}</div>
+                      {s.latest_reading ? (
+                        <div className={`text-lg font-black ${hasAlert ? "text-rose-600" : "text-slate-800"}`}>
+                          {s.latest_reading.temperature_c}°C
+                        </div>
+                      ) : (
+                        <div className="text-xs text-slate-400 italic font-bold">Hors-ligne</div>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
         </div>
 
         {/* Side Panel */}
-        <div className="flex-1 lg:max-w-xs flex flex-col gap-4">
+        <div className="w-full lg:w-80 flex flex-col gap-4 overflow-hidden">
           {!zone ? (
-            <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm h-full overflow-hidden flex flex-col">
-              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 pb-3 border-b border-slate-100">
-                Toutes les zones
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-hidden flex flex-col flex-1">
+              <h3 className="font-black text-slate-800 text-sm mb-5 flex items-center gap-2 pb-3 border-b border-slate-100 uppercase tracking-tight">
+                Répertoire des Zones
               </h3>
-              <div className="overflow-y-auto pr-2 -mr-2 space-y-2 flex-1">
+              <div className="overflow-y-auto space-y-3 flex-1 pr-1">
                 {zonesWithPolygons.length > 0 ? zonesWithPolygons.map(z => {
-                  const rb = risqueBadge[z.niveau_risque_base] || {};
-                  const activeAlerts = alertsByZone[z.id_zone] || 0;
+                  const rb = risqueBadge[z.niveau_risque_base] || risqueBadge.faible;
+                  const activeAlertsCount = alertsByZone[z.id_zone] || 0;
                   return (
                     <div
                       key={z.id_zone}
                       onClick={() => setSelectedZone(z.id_zone)}
-                      className="p-3 rounded-2xl bg-white border border-slate-100 hover:border-slate-300 shadow-sm hover:shadow transition-all cursor-pointer flex justify-between items-center group"
+                      className="p-4 rounded-2xl bg-white border border-slate-100 hover:border-emerald-200 shadow-sm hover:shadow-md hover:bg-emerald-50/20 transition-all cursor-pointer flex justify-between items-center group"
                     >
-                      <div>
-                        <div className="font-bold text-slate-800 text-sm group-hover:text-emerald-600 transition-colors">{z.nom_zone}</div>
-                        <div className="text-xs font-semibold text-slate-500 mt-1">{z.superficie_ha} ha</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-slate-800 text-sm group-hover:text-emerald-600 transition-colors truncate">{z.nom_zone}</div>
+                        <div className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-tighter">{z.superficie_ha} HA</div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className={`text-[10px] font-bold uppercase py-0.5 px-2 rounded-lg border ${rb.bg} ${rb.color}`}>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className={`text-[9px] font-black uppercase py-0.5 px-2 rounded-lg border ${rb.bg} ${rb.color}`}>
                           {z.niveau_risque_base}
                         </span>
-                        {activeAlerts > 0 && (
-                          <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-2 py-0.5 border border-rose-200 rounded-lg animate-pulse">
-                            ⚠️ {activeAlerts} alerte
+                        {activeAlertsCount > 0 && (
+                          <span className="text-[9px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-lg animate-pulse shadow-sm">
+                            {activeAlertsCount} ALERTE
                           </span>
                         )}
                       </div>
                     </div>
                   );
                 }) : (
-                  <p className="text-sm text-slate-400 italic text-center py-4">No zones configured</p>
+                  <div className="text-center py-12">
+                    <MapIcon className="w-12 h-12 text-slate-100 mx-auto mb-3" />
+                    <p className="text-xs text-slate-400 font-bold">Aucune zone configurée</p>
+                  </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col flex-1 animate-in slide-in-from-right-10 duration-500 overflow-hidden">
               <button
                 onClick={() => setSelectedZone(null)}
-                className="self-start text-xs font-bold text-slate-500 hover:text-emerald-600 flex items-center gap-1 mb-5 bg-slate-50 px-3 py-1.5 rounded-lg transition-colors border border-slate-100"
+                className="self-start text-[10px] font-black text-slate-400 hover:text-emerald-600 flex items-center gap-1 mb-6 bg-slate-50 px-3 py-1.5 rounded-xl transition-all border border-slate-100 uppercase tracking-widest"
               >
-                <ChevronLeft className="w-4 h-4" /> Retour
+                <ChevronLeft className="w-3.5 h-3.5" /> Retour à la liste
               </button>
 
-              {/* Zone header */}
-              <div className="mb-6">
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">{zone.nom_zone}</h2>
-                <p className="text-sm font-medium text-slate-500 mt-1 flex items-center gap-1.5">
-                  <Map className="w-4 h-4" /> {zone.center[0].toFixed(3)}°N, {Math.abs(zone.center[1]).toFixed(3)}°O
-                </p>
-                {(() => {
-                  const rb = risqueBadge[zone.niveau_risque_base] || {};
-                  return (
-                    <span className={`inline-block mt-3 text-xs font-bold uppercase px-3 py-1 rounded-full border ${rb.bg} ${rb.color}`}>
-                      Risque {zone.niveau_risque_base}
-                    </span>
-                  );
-                })()}
+              {/* Zone Info card */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{zone.nom_zone}</h2>
+                <div className="flex items-center gap-2 mt-3">
+                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                   <p className="text-xs font-bold text-slate-500 italic uppercase tracking-tighter">
+                    Données temps réel
+                  </p>
+                </div>
               </div>
 
-              {/* Zone stats */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              {/* Zone Quick Stats */}
+              <div className="grid grid-cols-2 gap-3 mb-8">
                 {[
-                  { label: "Superficie", val: `${zone.superficie_ha} ha` },
-                  { label: "Capteurs", val: capteursZone.length },
-                  { label: "Alertes", val: alertsByZone[zone.id_zone] || 0 },
-                  { label: "Zone ID", val: `#${zone.id_zone}` },
+                  { label: "Superficie", val: `${zone.superficie_ha} ha`, color: "text-slate-800" },
+                  { label: "Alertes", val: alertsByZone[zone.id_zone] || 0, color: (alertsByZone[zone.id_zone] || 0) > 0 ? "text-rose-600" : "text-emerald-600" },
+                  { label: "Risque", val: zone.indice_risque, color: "text-slate-800" },
+                  { label: "Capteurs", val: capteursZone.length, color: "text-slate-800" },
                 ].map(s => (
-                  <div key={s.label} className="bg-slate-50 border border-slate-100 rounded-xl p-3">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</div>
-                    <div className={`text-base font-black ${s.label === "Alertes" && (alertsByZone[zone.id_zone] || 0) > 0 ? "text-rose-600" : "text-slate-800"}`}>
+                  <div key={s.label} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm">
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.label}</div>
+                    <div className={`text-base font-black ${s.color}`}>
                       {s.val}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Sensors in zone */}
-              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-500" /> Capteurs installés
+              {/* Sensors List in side panel */}
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 ml-1">
+                <Layers className="w-3.5 h-3.5 text-emerald-500" /> Télémétrie Capteurs
               </h3>
-              <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2">
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                 {capteursZone.map(c => {
                   const isPanne = c.statut !== "ACTIF";
-                  const hasAlert = c.latest_reading && c.latest_reading.temperature_c > 60;
-                  const sColor = isPanne
-                    ? "bg-slate-100 text-slate-500 border-slate-200"
-                    : hasAlert
-                    ? "bg-rose-50 text-rose-600 border-rose-200"
-                    : "bg-emerald-50 text-emerald-600 border-emerald-200";
-
+                  const hasAlert = c.latest_reading && c.latest_reading.temperature_c > 50;
+                  
                   return (
-                    <div key={c.id_capteur} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-shadow">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPanne ? "bg-slate-400" : hasAlert ? "bg-rose-500 animate-pulse" : "bg-emerald-500"}`} />
-
-                      <div className="flex-1 font-mono text-xs font-bold text-slate-600">
-                        {c.reference_serie}
+                    <div key={c.id_capteur} className="flex items-center gap-3 p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-100 shadow-sm transition-all group">
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPanne ? "bg-slate-300" : hasAlert ? "bg-rose-500 animate-pulse" : "bg-emerald-500"}`} />
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-800 text-xs truncate group-hover:text-emerald-600">{c.reference_serie}</div>
+                        <div className="text-[9px] text-slate-400 font-black uppercase mt-0.5">{c.statut}</div>
                       </div>
 
                       <div className={`text-sm font-black ${hasAlert ? "text-rose-600" : "text-slate-800"}`}>
                         {c.latest_reading ? `${c.latest_reading.temperature_c}°C` : "—"}
                       </div>
-
-                      <div className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${sColor}`}>
-                        {isPanne ? "Panne" : hasAlert ? "Alerte" : "Actif"}
-                      </div>
                     </div>
                   );
                 })}
                 {capteursZone.length === 0 && (
-                  <p className="text-sm text-slate-400 italic text-center py-4">Aucun capteur dans cette zone.</p>
+                  <div className="text-center py-8">
+                    <p className="text-[10px] text-slate-400 font-bold italic">Déploiement en attente...</p>
+                  </div>
                 )}
               </div>
+
+              <button className="mt-8 w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]">
+                Rapport de Zone
+              </button>
             </div>
           )}
         </div>
       </div>
+      
+      <style>{`
+        .custom-popup .leaflet-popup-content-wrapper { border-radius: 1.5rem; padding: 4px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .custom-popup .leaflet-popup-tip { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        @keyframes pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+      `}</style>
     </div>
   );
 }

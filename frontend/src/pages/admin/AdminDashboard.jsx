@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { 
+import {
   Building2, ShieldCheck, Cpu, Users, AlertTriangle, ArrowRight, Loader2, Activity,
-  TrendingUp, Map
+  TrendingUp, Map as MapIcon
 } from "lucide-react";
 import { 
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
           <p className="text-slate-500 mt-1">Real-time charts and metrics across the entire Argan network.</p>
         </div>
         <Link to="/admin/map" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all hover:-translate-y-0.5">
-          <Map className="w-4 h-4" /> Open System Map
+          <MapIcon className="w-4 h-4" /> Open System Map
         </Link>
       </div>
 

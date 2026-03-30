@@ -115,12 +115,21 @@ export default function CoopAlerts() {
   const [filtreUrgence, setFiltreUrgence] = useState("tous");
   const [expandedId, setExpandedId] = useState(null);
   const [search, setSearch] = useState("");
+  
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const coopId = user.cooperative_id;
 
-useEffect(() => {
+  useEffect(() => {
+    if (coopId) {
+      fetchAlertes();
+    }
+  }, [coopId]);
+
   const fetchAlertes = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(
-        "http://localhost:5000/api/cooperative/1/alerts"
+        `http://localhost:5000/api/cooperative/${coopId}/alerts`
       );
       setAlertes(response.data);
     } catch (error) {
@@ -130,118 +139,119 @@ useEffect(() => {
     }
   };
 
-  fetchAlertes();
-}, []);
+  const alertesFiltrees = alertes.filter(a => {
+    if (filtreStatut !== "tous" && a.statut !== filtreStatut) return false;
+    if (filtreUrgence !== "tous" && a.niveau_urgence !== filtreUrgence) return false;
+    if (
+      search &&
+      !a.zone?.toLowerCase().includes(search.toLowerCase()) &&
+      !a.capteur?.toLowerCase().includes(search.toLowerCase())
+    ) return false;
+    return true;
+  });
 
+  const countActives = alertes.filter(a => a.statut === "active").length;
 
-
-const alertesFiltrees = alertes.filter(a => {
-  if (filtreStatut !== "tous" && a.statut !== filtreStatut) return false;
-  if (filtreUrgence !== "tous" && a.niveau_urgence !== filtreUrgence) return false;
-  if (
-    search &&
-    !a.zone?.toLowerCase().includes(search.toLowerCase()) &&
-    !a.capteur?.toLowerCase().includes(search.toLowerCase())
-  ) return false;
-  return true;
-});
-
-const countActives = alertes.filter(a => a.statut === "active").length;
-const countUrgMax = alertes.filter(a => a.niveau_urgence === "urgence_maximale").length;
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-900 pb-12">
+    <div className="min-h-screen text-slate-900 pb-12 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-6 py-6 shadow-sm relative z-10">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-700 text-white flex items-center justify-center flex-shrink-0 shadow-rose-200 shadow-md">
-              <Bell className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Alertes Incendies</h1>
-              <p className="text-sm font-medium text-slate-500 mt-0.5 flex items-center gap-2">
-                Coopérative Tifawt Argan
-                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                <span className="text-rose-600 font-bold">{countActives} active(s)</span>
-              </p>
-            </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-rose-200">
+            <Bell className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Flux des Alertes</h1>
+            <p className="text-sm font-medium text-slate-500 mt-0.5 flex items-center gap-2">
+              Surveillance critique
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+              <span className="text-rose-600 font-bold">{countActives} active(s)</span>
+            </p>
           </div>
         </div>
+        <button onClick={fetchAlertes} className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all shadow-sm">
+          <RefreshCcw className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Filtres */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center transition-all hover:shadow-md">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Rechercher zone ou capteur..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium"
-            />
+      {/* Filtres */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm mb-8 flex flex-col md:flex-row gap-4 items-center transition-all hover:shadow-md">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher zone ou capteur..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+          />
+        </div>
+        
+        <div className="flex gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-44 bg-slate-50 rounded-xl border border-slate-200 group">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
+            <select
+              value={filtreStatut}
+              onChange={e => setFiltreStatut(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-transparent rounded-xl text-sm appearance-none focus:outline-none font-bold text-slate-600 cursor-pointer"
+            >
+              <option value="tous">Tous statuts</option>
+              <option value="active">Active</option>
+              <option value="traitée">Traitée</option>
+              <option value="fausse_alerte">Fausse alerte</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
           
-          <div className="flex gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-40 bg-slate-50 rounded-xl">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={filtreStatut}
-                onChange={e => setFiltreStatut(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-transparent border border-slate-200 rounded-xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium cursor-pointer"
-              >
-                <option value="tous">Tous statuts</option>
-                <option value="active">Active</option>
-                <option value="traitée">Traitée</option>
-                <option value="fausse_alerte">Fausse alerte</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
-            
-            <div className="relative flex-1 md:w-40 bg-slate-50 rounded-xl">
-              <AlertTriangle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <select
-                value={filtreUrgence}
-                onChange={e => setFiltreUrgence(e.target.value)}
-                className="w-full pl-9 pr-8 py-2 bg-transparent border border-slate-200 rounded-xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium cursor-pointer"
-              >
-                <option value="tous">Tous niveaux</option>
-                <option value="vigilance">Vigilance</option>
-                <option value="alerte">Alerte</option>
-                <option value="urgence_maximale">Urgence maximale</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            </div>
+          <div className="relative flex-1 md:w-44 bg-slate-50 rounded-xl border border-slate-200 group">
+            <AlertTriangle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-hover:text-amber-500 transition-colors" />
+            <select
+              value={filtreUrgence}
+              onChange={e => setFiltreUrgence(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 bg-transparent rounded-xl text-sm appearance-none focus:outline-none font-bold text-slate-600 cursor-pointer"
+            >
+              <option value="tous">Tous niveaux</option>
+              <option value="vigilance">Vigilance</option>
+              <option value="alerte">Alerte</option>
+              <option value="urgence_maximale">Urgence maximale</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
         </div>
-
-        <div className="flex items-center justify-between mb-4 px-2">
-          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Résultats ({alertesFiltrees.length})</h2>
-        </div>
-
-        {/* Liste alertes */}
-        {alertesFiltrees.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200 border-dashed p-12 text-center shadow-sm">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Aucune alerte trouvée</h3>
-            <p className="text-slate-500 text-sm">Il n'y a pas d'alertes correspondant à vos critères de recherche.</p>
-          </div>
-        ) : (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {alertesFiltrees.map(a => (
-              <AlerteCard
-                key={a.id_alerte}
-                alerte={a}
-                expanded={expandedId === a.id_alerte}
-                onToggle={() => setExpandedId(expandedId === a.id_alerte ? null : a.id_alerte)}
-              />
-            ))}
-          </div>
-        )}
       </div>
+
+      <div className="flex items-center justify-between mb-4 px-2">
+        <h2 className="text-xs font-black text-slate-400 capitalize tracking-widest">Alertes Détectées ({alertesFiltrees.length})</h2>
+      </div>
+
+      {loading ? (
+        <div className="space-y-4">
+          {[1,2,3].map(i => (
+            <div key={i} className="h-24 bg-white rounded-2xl border border-slate-100 animate-pulse"></div>
+          ))}
+        </div>
+      ) : alertesFiltrees.length === 0 ? (
+        <div className="bg-white rounded-[2rem] border border-slate-200 border-dashed p-16 text-center shadow-sm">
+          <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+          </div>
+          <h3 className="text-xl font-black text-slate-800 mb-2">Aucune alerte trouvée</h3>
+          <p className="text-slate-500 font-medium">Le système n'a détecté aucun incident critique pour le moment.</p>
+        </div>
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {alertesFiltrees.map(a => (
+            <AlerteCard
+              key={a.id_alerte}
+              alerte={a}
+              expanded={expandedId === a.id_alerte}
+              onToggle={() => setExpandedId(expandedId === a.id_alerte ? null : a.id_alerte)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
+import { RefreshCcw } from "lucide-react";

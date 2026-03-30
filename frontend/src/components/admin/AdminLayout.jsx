@@ -1,129 +1,63 @@
-import React from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  Users,
-  LayoutDashboard,
-  ShieldCheck,
-  Building2,
-  Cpu,
-  LogOut,
-  Menu,
-  Map,
-  AlertTriangle,
-  FileText
-} from "lucide-react";
+USE parc;
 
-const AdminLayout = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+CREATE TABLE Segment (
+    indIP VARCHAR(11) PRIMARY KEY,
+    nomSegment VARCHAR(20) NOT NULL,
+    etage TINYINT(1),
+    nbSalle TINYINT(2) DEFAULT 0,
+    nbPoste TINYINT(2) DEFAULT 0
+);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+CREATE TABLE Salle (
+    nSalle VARCHAR(7) PRIMARY KEY,
+    nomSalle VARCHAR(20) NOT NULL,
+    nbPoste TINYINT(2),
+    indIP VARCHAR(11),
+    FOREIGN KEY (indIP) REFERENCES Segment(indIP)
+);
 
-  const navItems = [
-    { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "All Cooperatives", path: "/admin/cooperatives", icon: Building2 },
-    { name: "Pending Approvals", path: "/admin/pending", icon: ShieldCheck },
-    { name: "Users", path: "/admin/users", icon: Users },
-    { name: "Sensors", path: "/admin/sensors", icon: Cpu },
-    { name: "Alerts", path: "/admin/alerts", icon: AlertTriangle },
-    { name: "Fire Logs", path: "/admin/logs", icon: FileText },
-    { name: "System Map", path: "/admin/map", icon: Map },
-  ];
+CREATE TABLE Poste (
+    nPoste VARCHAR(7) PRIMARY KEY,
+    nomPoste VARCHAR(20) NOT NULL,
+    indIP VARCHAR(11),
+    ad VARCHAR(3),
+    typePoste VARCHAR(9),
+    nSalle VARCHAR(7),
+    nbLog TINYINT(2) DEFAULT 0,
 
-  return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
-        <div className="p-6 border-b border-slate-100">
-          <Link to="/admin" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <ShieldCheck className="text-white w-5 h-5" />
-            </div>
-            <span className="font-bold text-xl text-emerald-900 tracking-tight">
-              ArganFire Admin
-            </span>
-          </Link>
-        </div>
+    FOREIGN KEY (indIP) REFERENCES Segment(indIP),
+    FOREIGN KEY (nSalle) REFERENCES Salle(nSalle),
 
-        <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-emerald-50 text-emerald-700 font-medium shadow-sm"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-emerald-600"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 ${isActive ? "text-emerald-600" : "text-slate-400"}`}
-                />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
+    CONSTRAINT chk_ad CHECK (CAST(ad AS UNSIGNED) BETWEEN 0 AND 255)
+);
 
-        <div className="p-4 border-t border-slate-100">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-slate-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition-all duration-200"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
-      </aside>
+CREATE TABLE Logiciel (
+    nLog VARCHAR(5) PRIMARY KEY,
+    nomLog VARCHAR(20),
+    dateAch DATETIME,
+    version VARCHAR(7),
+    typeLog VARCHAR(9),
+    prix DECIMAL(6,2),
+    nbInstall TINYINT(2) DEFAULT 0,
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
-          <div className="flex items-center gap-4 md:hidden">
-            <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
-              <Menu className="w-6 h-6" />
-            </button>
-            <span className="font-bold text-emerald-900">ArganFire Admin</span>
-          </div>
+    CONSTRAINT chk_prix CHECK (prix >= 0)
+);
 
-          <div className="hidden md:block">
-            <h2 className="text-lg font-semibold text-slate-800">
-              {navItems.find((item) => item.path === location.pathname)?.name ||
-                "Admin"}
-            </h2>
-          </div>
+CREATE TABLE Installer (
+    nPoste VARCHAR(7),
+    nLog VARCHAR(5),
+    numIns INTEGER(5),
+    dateIns TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    delai SMALLINT,
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
-              <div className="text-right">
-                <p className="text-sm font-medium text-slate-700 leading-none">
-                  Admin User
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Super Administrator
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
-                AD
-              </div>
-            </div>
-          </div>
-        </header>
+    PRIMARY KEY (numIns),
+    FOREIGN KEY (nPoste) REFERENCES Poste(nPoste),
+    FOREIGN KEY (nLog) REFERENCES Logiciel(nLog),
 
-        {/* Page Area */}
-        <main className="flex-1 p-8 overflow-y-auto">
-          <Outlet />
-        </main>
-      </div>
-    </div>
-  );
-};
+    CONSTRAINT unique_install UNIQUE (nPoste, nLog)
+);
 
-export default AdminLayout;
+CREATE TABLE Types (
+    typeLP VARCHAR(9) PRIMARY KEY,
+    nomType VARCHAR(20)
+);

@@ -40,7 +40,7 @@ console.log("USER FROM BACKEND:", user);
         // Save user data to localStorage
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("role", user.role);
-        localStorage.setItem("token", "authenticated");
+        localStorage.setItem("token", data.token);
 
         // Redirect based on role and statut
         if (user.role === "ADMIN") {

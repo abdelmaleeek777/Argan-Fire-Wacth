@@ -73,3 +73,15 @@ def token_required(f):
         request.current_user = payload
         return f(*args, **kwargs)
     return decorated
+
+
+def cooperative_required(f):
+    """Decorator — protect a route for Cooperative Owners only."""
+    @wraps(f)
+    @token_required
+    def decorated(*args, **kwargs):
+        user = getattr(request, "current_user", None)
+        if not user or user.get("role") not in ["UTILISATEUR_COOP", "COOP", "COOPERATIVE"]:
+            return jsonify({"error": "Unauthorized: Cooperative Owner access required"}), 403
+        return f(*args, **kwargs)
+    return decorated
