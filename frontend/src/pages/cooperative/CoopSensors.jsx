@@ -107,14 +107,14 @@ export default function CoopSensors() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Capteurs</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Sensors</h1>
           <p className="text-slate-600 mt-1">
-            Gérez et surveillez vos capteurs IoT
+            Manage and monitor your IoT sensors
           </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
           <RefreshCw className="w-4 h-4" />
-          Actualiser
+          Refresh
         </button>
       </div>
 
@@ -124,7 +124,7 @@ export default function CoopSensors() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Rechercher par nom ou zone..."
+            placeholder="Search by name or zone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
@@ -135,10 +135,10 @@ export default function CoopSensors() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
         >
-          <option value="all">Tous les statuts</option>
-          <option value="ACTIVE">Actif</option>
-          <option value="INACTIF">Inactif</option>
-          <option value="HORS_LIGNE">Hors ligne</option>
+          <option value="all">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIF">Inactive</option>
+          <option value="HORS_LIGNE">Offline</option>
         </select>
       </div>
 
@@ -146,7 +146,7 @@ export default function CoopSensors() {
       {filteredSensors.length === 0 ? (
         <div className="text-center py-12 bg-slate-50 rounded-lg">
           <Cpu className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-600">Aucun capteur trouvé</p>
+          <p className="text-slate-600">No sensors found</p>
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -182,7 +182,7 @@ export default function CoopSensors() {
                 <div className="flex items-center justify-between text-slate-600">
                   <div className="flex items-center gap-2">
                     <Thermometer className="w-4 h-4 text-emerald-500" />
-                    <span>Température</span>
+                    <span>Temperature</span>
                   </div>
                   <span className="font-semibold text-slate-900">
                     {sensor.latest_reading?.temperature_c
@@ -195,7 +195,7 @@ export default function CoopSensors() {
                 <div className="flex items-center justify-between text-slate-600">
                   <div className="flex items-center gap-2">
                     <Activity className="w-4 h-4 text-amber-500" />
-                    <span>Humidité</span>
+                    <span>Humidity</span>
                   </div>
                   <span className="font-semibold text-slate-900">
                     {sensor.latest_reading?.humidite_pct
@@ -206,7 +206,7 @@ export default function CoopSensors() {
                 </div>
 
                 <div className="flex items-center justify-between text-slate-600 text-xs">
-                  <span>Dernière lecture</span>
+                  <span>Last reading</span>
                   <span className="font-semibold text-slate-900">
                     {sensor.latest_reading?.horodatage
                       ? new Date(sensor.latest_reading.horodatage).toLocaleString()
@@ -215,7 +215,7 @@ export default function CoopSensors() {
                 </div>
 
                 <div className="flex items-center justify-between text-slate-600 text-xs">
-                  <span>Coordonnées</span>
+                  <span>Coordinates</span>
                   <span className="font-semibold text-slate-900">
                     {sensor.latitude}, {sensor.longitude}
                   </span>
@@ -231,7 +231,7 @@ export default function CoopSensors() {
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
-                  Détails
+                  Details
                 </button>
               </div>
             </div>

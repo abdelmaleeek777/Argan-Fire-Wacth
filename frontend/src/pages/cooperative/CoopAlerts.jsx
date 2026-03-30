@@ -6,14 +6,14 @@ import { Bell, Search, Filter, ChevronDown, ChevronRight, Wind, AlertTriangle, C
 
 const urgenceStyles = {
   vigilance: { label: "Vigilance", dot: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200" },
-  alerte: { label: "Alerte", dot: "bg-orange-500", badge: "bg-orange-50 text-orange-700 border-orange-200" },
-  urgence_maximale: { label: "Urgence max.", dot: "bg-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200 shadow-sm" },
+  alerte: { label: "Alert", dot: "bg-orange-500", badge: "bg-orange-50 text-orange-700 border-orange-200" },
+  urgence_maximale: { label: "Critical", dot: "bg-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200 shadow-sm" },
 };
 
 const statutStyles = {
   active: { label: "Active", row: "bg-orange-50/30 border-rose-200", badge: "bg-rose-100 text-rose-700 border-rose-200 font-bold" },
-  "traitée": { label: "Traitée", row: "bg-white border-slate-200", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  fausse_alerte: { label: "Fausse alerte", row: "bg-slate-50/50 border-slate-200 opacity-75", badge: "bg-slate-100 text-slate-600 border-slate-200" },
+  "traitée": { label: "Processed", row: "bg-white border-slate-200", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  fausse_alerte: { label: "False Alert", row: "bg-slate-50/50 border-slate-200 opacity-75", badge: "bg-slate-100 text-slate-600 border-slate-200" },
 };
 
 function formatDateTime(dt) {
@@ -24,10 +24,10 @@ function formatDateTime(dt) {
 }
 
 function directionLabel(deg) {
-  if (deg >= 45 && deg <= 135) return `${deg}° (Est — Chergui)`;
-  if (deg > 135 && deg <= 225) return `${deg}° (Sud)`;
-  if (deg > 225 && deg <= 315) return `${deg}° (Ouest)`;
-  return `${deg}° (Nord)`;
+  if (deg >= 45 && deg <= 135) return `${deg}° (East)`;
+  if (deg > 135 && deg <= 225) return `${deg}° (South)`;
+  if (deg > 225 && deg <= 315) return `${deg}° (West)`;
+  return `${deg}° (North)`;
 }
 
 function AlerteCard({ alerte, expanded, onToggle }) {
@@ -83,19 +83,18 @@ function AlerteCard({ alerte, expanded, onToggle }) {
             <div className="text-sm font-bold text-slate-700">{directionLabel(alerte.direction_propagation_deg)}</div>
             <div className={`text-xs mt-1 font-medium flex items-center gap-2 ${isChergui ? "text-rose-600" : "text-slate-500"}`}>
               {alerte.vitesse_propagation_ha_h} ha/h
-              {isChergui && <span className="text-[10px] font-bold bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-md flex items-center gap-1"><Wind className="w-3 h-3" /> Chergui</span>}
             </div>
           </div>
           <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Bell className="w-3 h-3 text-orange-500" /> Statut SMS</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Bell className="w-3 h-3 text-orange-500" /> SMS Status</div>
             <div className={`text-sm font-bold flex items-center gap-1.5 ${alerte.sms_envoye ? "text-emerald-600" : "text-slate-400"}`}>
-              {alerte.sms_envoye ? <><CheckCircle2 className="w-4 h-4" /> Envoyé avec succès</> : "Non envoyé"}
+              {alerte.sms_envoye ? <><CheckCircle2 className="w-4 h-4" /> Successfully sent</> : "Not sent"}
             </div>
           </div>
           <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Équipe affectée</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Assigned Team</div>
             <div className={`text-sm font-bold ${alerte.equipe ? "text-blue-600" : "text-slate-400"}`}>
-              {alerte.equipe || "Aucune équipe"}
+              {alerte.equipe || "No team"}
             </div>
           </div>
           <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
@@ -133,7 +132,7 @@ export default function CoopAlerts() {
       );
       setAlertes(response.data);
     } catch (error) {
-      console.error("Erreur chargement alertes :", error);
+      console.error("Error loading alerts:", error);
     } finally {
       setLoading(false);
     }
@@ -161,11 +160,11 @@ export default function CoopAlerts() {
             <Bell className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Flux des Alertes</h1>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Alert Feed</h1>
             <p className="text-sm font-medium text-slate-500 mt-0.5 flex items-center gap-2">
-              Surveillance critique
+              Critical monitoring
               <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-              <span className="text-rose-600 font-bold">{countActives} active(s)</span>
+              <span className="text-rose-600 font-bold">{countActives} active</span>
             </p>
           </div>
         </div>
@@ -180,7 +179,7 @@ export default function CoopAlerts() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Rechercher zone ou capteur..."
+            placeholder="Search zone or sensor..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
@@ -195,10 +194,10 @@ export default function CoopAlerts() {
               onChange={e => setFiltreStatut(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-transparent rounded-xl text-sm appearance-none focus:outline-none font-bold text-slate-600 cursor-pointer"
             >
-              <option value="tous">Tous statuts</option>
+              <option value="tous">All statuses</option>
               <option value="active">Active</option>
-              <option value="traitée">Traitée</option>
-              <option value="fausse_alerte">Fausse alerte</option>
+              <option value="traitée">Processed</option>
+              <option value="fausse_alerte">False Alert</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -210,10 +209,10 @@ export default function CoopAlerts() {
               onChange={e => setFiltreUrgence(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-transparent rounded-xl text-sm appearance-none focus:outline-none font-bold text-slate-600 cursor-pointer"
             >
-              <option value="tous">Tous niveaux</option>
+              <option value="tous">All levels</option>
               <option value="vigilance">Vigilance</option>
-              <option value="alerte">Alerte</option>
-              <option value="urgence_maximale">Urgence maximale</option>
+              <option value="alerte">Alert</option>
+              <option value="urgence_maximale">Critical</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -221,7 +220,7 @@ export default function CoopAlerts() {
       </div>
 
       <div className="flex items-center justify-between mb-4 px-2">
-        <h2 className="text-xs font-black text-slate-400 capitalize tracking-widest">Alertes Détectées ({alertesFiltrees.length})</h2>
+        <h2 className="text-xs font-black text-slate-400 capitalize tracking-widest">Detected Alerts ({alertesFiltrees.length})</h2>
       </div>
 
       {loading ? (
@@ -235,8 +234,8 @@ export default function CoopAlerts() {
           <div className="w-20 h-20 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
-          <h3 className="text-xl font-black text-slate-800 mb-2">Aucune alerte trouvée</h3>
-          <p className="text-slate-500 font-medium">Le système n'a détecté aucun incident critique pour le moment.</p>
+          <h3 className="text-xl font-black text-slate-800 mb-2">No alerts found</h3>
+          <p className="text-slate-500 font-medium">The system has not detected any critical incidents at the moment.</p>
         </div>
       ) : (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">

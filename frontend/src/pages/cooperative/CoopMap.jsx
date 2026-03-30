@@ -23,10 +23,10 @@ const risqueFill = {
 };
 
 const risqueBadge = {
-  faible:   { bg: "bg-emerald-50 border-emerald-200", color: "text-emerald-700" },
-  moyen:    { bg: "bg-amber-50 border-amber-200", color: "text-amber-700" },
-  "élevé":  { bg: "bg-orange-50 border-orange-200", color: "text-orange-700" },
-  critique: { bg: "bg-purple-50 border-purple-200", color: "text-purple-700" },
+  faible:   { bg: "bg-emerald-50 border-emerald-200", color: "text-emerald-700", label: "Low" },
+  moyen:    { bg: "bg-amber-50 border-amber-200", color: "text-amber-700", label: "Medium" },
+  "élevé":  { bg: "bg-orange-50 border-orange-200", color: "text-orange-700", label: "High" },
+  critique: { bg: "bg-purple-50 border-purple-200", color: "text-purple-700", label: "Critical" },
 };
 
 // Convert WKT polygon coordinates [[lng, lat], ...] to Leaflet [[lat, lng], ...]
@@ -63,7 +63,7 @@ export default function CoopMap() {
 
   const fetchData = async () => {
     if (!cooperativeId) {
-      setError("Aucun identifiant de coopérative trouvé.");
+      setError("No cooperative ID found.");
       setLoading(false);
       return;
     }
@@ -83,7 +83,7 @@ export default function CoopMap() {
       setError(null);
     } catch (err) {
       console.error("Map fetch error:", err);
-      setError("Erreur de chargement des données spatiales.");
+      setError("Error loading spatial data.");
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export default function CoopMap() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
-        <p className="text-slate-500 font-medium">Initialisation du renseignement spatial...</p>
+        <p className="text-slate-500 font-medium">Loading map data...</p>
       </div>
     );
   }
@@ -143,13 +143,13 @@ export default function CoopMap() {
     return (
       <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-md mx-auto mt-12">
         <WifiOff className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-        <h2 className="text-lg font-bold text-rose-800">Erreur de connexion</h2>
+        <h2 className="text-lg font-bold text-rose-800">Connection Error</h2>
         <p className="text-rose-600 mt-2 text-sm">{error}</p>
         <button
           onClick={() => { setLoading(true); fetchData(); }}
           className="mt-6 px-6 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all"
         >
-          Réessayer
+          Retry
         </button>
       </div>
     );
@@ -174,9 +174,9 @@ export default function CoopMap() {
             <MapIcon className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Intelligence Spatiale</h1>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Spatial Intelligence</h1>
             <p className="text-sm font-medium text-slate-500 mt-0.5">
-              {cooperative?.nom_cooperative} · {zones.length} Zones surveillées
+              {cooperative?.nom_cooperative} · {zones.length} Monitored zones
             </p>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function CoopMap() {
             }`}
           >
             <Layers className="w-4 h-4" />
-            {showCapteurs ? "Masquer Capteurs" : "Afficher Capteurs"}
+            {showCapteurs ? "Hide Sensors" : "Show Sensors"}
           </button>
         </div>
       </div>
@@ -201,12 +201,12 @@ export default function CoopMap() {
           {/* Legend Overlay */}
           <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-100 shadow-xl max-w-[180px]">
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 underline decoration-emerald-500 underline-offset-4">
-              <Info className="w-3 h-3 text-emerald-500" /> Niveaux de Risque
+              <Info className="w-3 h-3 text-emerald-500" /> Risk Levels
             </div>
             {Object.entries(risqueBadge).map(([k, v]) => (
               <div key={k} className="flex items-center gap-2 mb-2 last:mb-0">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: risqueFill[k]?.stroke }} />
-                <span className={`text-[10px] font-bold capitalize ${v.color} tracking-tight`}>{k}</span>
+                <span className={`text-[10px] font-bold capitalize ${v.color} tracking-tight`}>{v.label}</span>
               </div>
             ))}
 
@@ -214,15 +214,15 @@ export default function CoopMap() {
               <div className="border-t border-slate-100 mt-4 pt-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
-                  <span className="text-[10px] font-bold text-slate-600">Actif</span>
+                  <span className="text-[10px] font-bold text-slate-600">Active</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white shadow-sm animate-pulse" />
-                  <span className="text-[10px] font-bold text-rose-600">Alarme</span>
+                  <span className="text-[10px] font-bold text-rose-600">Alarm</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-slate-400 border-2 border-white" />
-                  <span className="text-[10px] font-bold text-slate-400">Panne</span>
+                  <span className="text-[10px] font-bold text-slate-400">Failure</span>
                 </div>
               </div>
             )}
@@ -262,7 +262,7 @@ export default function CoopMap() {
                     <div className="p-1">
                       <div className="font-black text-slate-800 text-sm">{z.nom_zone}</div>
                       <div className="text-xs font-bold text-emerald-600 mt-1">{z.superficie_ha} hectares</div>
-                      <div className="mt-2 text-[10px] font-black uppercase text-slate-400 border-t pt-2">Risque Actuel: {z.indice_risque}</div>
+                      <div className="mt-2 text-[10px] font-black uppercase text-slate-400 border-t pt-2">Current Risk: {z.indice_risque}</div>
                     </div>
                   </Popup>
                 </Polygon>
@@ -304,7 +304,7 @@ export default function CoopMap() {
                           {s.latest_reading.temperature_c}°C
                         </div>
                       ) : (
-                        <div className="text-xs text-slate-400 italic font-bold">Hors-ligne</div>
+                        <div className="text-xs text-slate-400 italic font-bold">Offline</div>
                       )}
                     </div>
                   </Popup>
@@ -319,7 +319,7 @@ export default function CoopMap() {
           {!zone ? (
             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-hidden flex flex-col flex-1">
               <h3 className="font-black text-slate-800 text-sm mb-5 flex items-center gap-2 pb-3 border-b border-slate-100 uppercase tracking-tight">
-                Répertoire des Zones
+                Zones List
               </h3>
               <div className="overflow-y-auto space-y-3 flex-1 pr-1">
                 {zonesWithPolygons.length > 0 ? zonesWithPolygons.map(z => {
@@ -337,11 +337,11 @@ export default function CoopMap() {
                       </div>
                       <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                         <span className={`text-[9px] font-black uppercase py-0.5 px-2 rounded-lg border ${rb.bg} ${rb.color}`}>
-                          {z.niveau_risque_base}
+                          {rb.label}
                         </span>
                         {activeAlertsCount > 0 && (
                           <span className="text-[9px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-lg animate-pulse shadow-sm">
-                            {activeAlertsCount} ALERTE
+                            {activeAlertsCount} ALERT
                           </span>
                         )}
                       </div>
@@ -350,7 +350,7 @@ export default function CoopMap() {
                 }) : (
                   <div className="text-center py-12">
                     <MapIcon className="w-12 h-12 text-slate-100 mx-auto mb-3" />
-                    <p className="text-xs text-slate-400 font-bold">Aucune zone configurée</p>
+                    <p className="text-xs text-slate-400 font-bold">No zones configured</p>
                   </div>
                 )}
               </div>
@@ -361,7 +361,7 @@ export default function CoopMap() {
                 onClick={() => setSelectedZone(null)}
                 className="self-start text-[10px] font-black text-slate-400 hover:text-emerald-600 flex items-center gap-1 mb-6 bg-slate-50 px-3 py-1.5 rounded-xl transition-all border border-slate-100 uppercase tracking-widest"
               >
-                <ChevronLeft className="w-3.5 h-3.5" /> Retour à la liste
+                <ChevronLeft className="w-3.5 h-3.5" /> Back to list
               </button>
 
               {/* Zone Info card */}
@@ -370,7 +370,7 @@ export default function CoopMap() {
                 <div className="flex items-center gap-2 mt-3">
                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                    <p className="text-xs font-bold text-slate-500 italic uppercase tracking-tighter">
-                    Données temps réel
+                    Real-time data
                   </p>
                 </div>
               </div>
@@ -394,7 +394,7 @@ export default function CoopMap() {
 
               {/* Sensors List in side panel */}
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 ml-1">
-                <Layers className="w-3.5 h-3.5 text-emerald-500" /> Télémétrie Capteurs
+                <Layers className="w-3.5 h-3.5 text-emerald-500" /> Sensor Telemetry
               </h3>
               <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                 {capteursZone.map(c => {
@@ -418,13 +418,13 @@ export default function CoopMap() {
                 })}
                 {capteursZone.length === 0 && (
                   <div className="text-center py-8">
-                    <p className="text-[10px] text-slate-400 font-bold italic">Déploiement en attente...</p>
+                    <p className="text-[10px] text-slate-400 font-bold italic">Deployment pending...</p>
                   </div>
                 )}
               </div>
 
               <button className="mt-8 w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]">
-                Rapport de Zone
+                Zone Report
               </button>
             </div>
           )}
