@@ -45,6 +45,8 @@ console.log("USER FROM BACKEND:", user);
         // Redirect based on role and statut
         if (user.role === "ADMIN") {
           navigate("/admin/dashboard");
+        } else if (user.role === "POMPIER" || user.role === "FIREFIGHTER" || user.role === "CHEF_EQUIPE") {
+          navigate("/pompier/dashboard");
         } else if (user.statut === "approved") {
           navigate("/coop/dashboard");
         } else if (user.statut === "pending") {

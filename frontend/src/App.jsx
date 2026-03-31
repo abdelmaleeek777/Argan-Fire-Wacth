@@ -27,6 +27,9 @@ import CoopMap from "./pages/cooperative/CoopMap";
 import MesZones from "./pages/cooperative/MesZones";
 import CoopSensors from "./pages/cooperative/CoopSensors";
 
+// Pompier (Firefighter)
+import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
+
 import "./App.css";
 
 function App() {
@@ -107,6 +110,20 @@ function App() {
           <Route path="sensors" element={<CoopSensors />} />
           <Route path="map" element={<CoopMap />} />
         </Route>
+
+        {/* Pompier (Firefighter) Routes */}
+        <Route 
+          path="/pompier/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["POMPIER", "FIREFIGHTER", "CHEF_EQUIPE"]}>
+              <FirefighterDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/pompier" 
+          element={<Navigate to="/pompier/dashboard" replace />}
+        />
       </Routes>
     </div>
   );
