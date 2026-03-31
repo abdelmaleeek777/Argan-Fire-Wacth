@@ -56,10 +56,10 @@ export default function FirefighterAlerts() {
             <div className="p-2.5 bg-rose-100 rounded-xl">
               <ShieldAlert className="w-8 h-8 text-rose-600" />
             </div>
-            Alertes Actives
+            Active Alerts
           </h1>
           <p className="text-slate-500 font-medium mt-2">
-            Surveillez et répondez aux alertes signalées sur l'ensemble de la région Souss-Massa.
+            Monitor and respond to reported alerts across the Souss-Massa region.
           </p>
         </div>
         <button 
@@ -67,7 +67,7 @@ export default function FirefighterAlerts() {
           className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-bold group shadow-sm hover:shadow active:scale-95"
         >
           <RefreshCw className={`w-4 h-4 text-slate-400 group-hover:text-emerald-500 ${loading ? "animate-spin" : ""}`} /> 
-          Actualiser
+          Refresh
         </button>
       </div>
 
@@ -76,12 +76,12 @@ export default function FirefighterAlerts() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400">
-                <th className="p-5 font-black">Réf.</th>
-                <th className="p-5 font-black">Coopérative & Zone</th>
+                <th className="p-5 font-black">ID</th>
+                <th className="p-5 font-black">Cooperative & Zone</th>
                 <th className="p-5 font-black">Type</th>
-                <th className="p-5 font-black">Sévérité</th>
-                <th className="p-5 font-black">Statut</th>
-                <th className="p-5 font-black text-right">Déclenchement</th>
+                <th className="p-5 font-black">Severity</th>
+                <th className="p-5 font-black">Status</th>
+                <th className="p-5 font-black text-right">Triggered At</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -89,7 +89,7 @@ export default function FirefighterAlerts() {
                 <tr>
                   <td colSpan="6" className="p-16 text-center text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-emerald-500" />
-                    <span className="font-bold text-sm tracking-widest uppercase">Chargement des alertes...</span>
+                    <span className="font-bold text-sm tracking-widest uppercase">Loading alerts...</span>
                   </td>
                 </tr>
               ) : alerts.length === 0 ? (
@@ -98,7 +98,7 @@ export default function FirefighterAlerts() {
                     <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <AlertTriangle className="w-10 h-10 text-slate-300" />
                     </div>
-                    Aucune alerte active sur le réseau.
+                    No active alerts on the network.
                   </td>
                 </tr>
               ) : (
@@ -126,14 +126,14 @@ export default function FirefighterAlerts() {
                           <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${alert.status === "RESOLUE" ? "bg-emerald-500" : "bg-rose-500"}`}></span>
                         </span>
                         <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded-lg border ${getStatusStyle(alert.status)}`}>
-                          {alert.status || "INCONNU"}
+                          {alert.status || "UNKNOWN"}
                         </span>
                       </div>
                     </td>
                     <td className="p-5 text-right align-middle">
                       <div className="flex items-center justify-end gap-2 text-xs font-bold text-slate-500">
                         <Clock className="w-4 h-4 text-slate-400" />
-                        {alert.triggeredAt ? new Date(alert.triggeredAt).toLocaleString('fr-FR') : "N/A"}
+                        {alert.triggeredAt ? new Date(alert.triggeredAt).toLocaleString() : "N/A"}
                       </div>
                     </td>
                   </tr>

@@ -19,9 +19,9 @@ const FirefighterLayout = () => {
   };
 
   const navItems = [
-    { name: "Tableau de bord", path: "/pompier/dashboard", icon: LayoutDashboard },
-    { name: "Carte du Système", path: "/pompier/map", icon: Map },
-    { name: "Alertes Incendie", path: "/pompier/alerts", icon: ShieldAlert },
+    { name: "Dashboard", path: "/pompier/dashboard", icon: LayoutDashboard },
+    { name: "System Map", path: "/pompier/map", icon: Map },
+    { name: "Fire Alerts", path: "/pompier/alerts", icon: ShieldAlert },
   ];
 
   return (
@@ -38,7 +38,7 @@ const FirefighterLayout = () => {
                 Argan-Fire
               </span>
               <span className="text-xs font-semibold uppercase tracking-widest text-emerald-600 block">
-                Pompiers
+                Team Leader
               </span>
             </div>
           </Link>
@@ -73,7 +73,7 @@ const FirefighterLayout = () => {
             className="flex items-center gap-3 w-full px-4 py-3 font-bold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
           >
             <LogOut className="w-5 h-5 text-slate-400 hover:text-red-500" />
-            Déconnexion
+            Logout
           </button>
         </div>
       </aside>
@@ -86,12 +86,12 @@ const FirefighterLayout = () => {
             <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
               <Menu className="w-6 h-6" />
             </button>
-            <span className="font-bold text-slate-900">Argan-Fire Pompiers</span>
+            <span className="font-bold text-slate-900">Team Leader Portal</span>
           </div>
 
           <div className="hidden md:block">
             <h2 className="text-lg font-black text-slate-800 tracking-tight">
-              {navItems.find((item) => item.path === location.pathname)?.name || "Espace Pompier"}
+              {navItems.find((item) => item.path === location.pathname)?.name || "Team Leader Space"}
             </h2>
           </div>
 
@@ -102,7 +102,7 @@ const FirefighterLayout = () => {
                   El Idrissi
                 </p>
                 <p className="text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-widest">
-                  Lieutenant
+                  Commander
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-black shadow-md border-2 border-white">
