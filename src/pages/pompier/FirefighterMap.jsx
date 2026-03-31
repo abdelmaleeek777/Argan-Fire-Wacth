@@ -89,7 +89,7 @@ export default function FirefighterMap() {
     return (
       <div className="flex flex-col items-center justify-center p-32 space-y-4">
         <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Chargement de la carte...</p>
+        <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Loading map data...</p>
       </div>
     );
   }
@@ -107,18 +107,18 @@ export default function FirefighterMap() {
     : [30.38, -8.96];
 
   const statCards = [
-    { label: "Zones Forestières", value: mapData.zones.length || 5, icon: Layers, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
-    { label: "Total Capteurs", value: mapData.sensors.length || 1, icon: Cpu, bg: "bg-slate-50", text: "text-slate-500", valText: "text-slate-700" },
-    { label: "Capteurs Actifs", value: stats?.activeSensors || 1, icon: MapPin, bg: "bg-indigo-50", text: "text-indigo-500", valText: "text-indigo-700" },
-    { label: "Alertes Actives", value: stats?.activeAlerts || 2, icon: AlertTriangle, bg: "bg-rose-50", text: "text-rose-500", valText: "text-rose-700" },
+    { label: "Forest Zones", value: mapData.zones.length || 5, icon: Layers, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
+    { label: "Total Sensors", value: mapData.sensors.length || 1, icon: Cpu, bg: "bg-slate-50", text: "text-slate-500", valText: "text-slate-700" },
+    { label: "Active Sensors", value: stats?.activeSensors || 1, icon: MapPin, bg: "bg-indigo-50", text: "text-indigo-500", valText: "text-indigo-700" },
+    { label: "Active Alerts", value: stats?.activeAlerts || 2, icon: AlertTriangle, bg: "bg-rose-50", text: "text-rose-500", valText: "text-rose-700" },
   ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-8">
       <div>
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Carte du Système</h1>
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight">System Map</h1>
         <p className="text-slate-500 font-medium mt-1">
-          Vue d'ensemble des zones forestières, capteurs et alertes d'incendie actullement signalées.
+          Complete overview of forest zones, sensors, and active fire alerts.
         </p>
       </div>
 
@@ -144,35 +144,35 @@ export default function FirefighterMap() {
       <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center gap-5 shadow-sm text-xs font-bold text-slate-600">
         <div className="flex items-center gap-2 text-slate-500 mr-2 bg-slate-50 py-1.5 px-3 rounded-full">
           <Info className="w-4 h-4" />
-          <span className="uppercase tracking-widest">Légende:</span>
+          <span className="uppercase tracking-widest">Legend:</span>
         </div>
         
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm border border-emerald-600"></div>
-          <span>Capteur Actif</span>
+          <span>Active Sensor</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-rose-500 shadow-sm border border-rose-600"></div>
-          <span>Capteur Hors Ligne</span>
+          <span>Offline Sensor</span>
         </div>
         
         <div className="h-4 w-px bg-slate-200"></div>
 
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-md bg-emerald-100 border-2 border-emerald-400"></div>
-          <span>Risque Faible</span>
+          <span>Low Risk</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-md bg-blue-100 border-2 border-blue-400"></div>
-          <span>Risque Moyen</span>
+          <span>Medium Risk</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-md bg-yellow-100 border-2 border-yellow-400"></div>
-          <span>Risque Élevé</span>
+          <span>High Risk</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded-md bg-rose-100 border-2 border-rose-400"></div>
-          <span>Risque Critique</span>
+          <span>Critical Risk</span>
         </div>
       </div>
 
@@ -195,7 +195,7 @@ export default function FirefighterMap() {
                   <div className="font-black text-slate-800 text-lg tracking-tight mb-1">{z.nom_zone}</div>
                   <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest bg-slate-50 py-1 px-2 rounded-md inline-block mb-3">{z.region}</div>
                   <div className="text-sm font-medium text-slate-600">
-                    <span className="font-black text-slate-800">{z.superficie_ha}</span> ha sous surveillance.
+                    <span className="font-black text-slate-800">{z.superficie_ha}</span> ha covered.
                   </div>
                 </Popup>
               </Polygon>
@@ -218,7 +218,7 @@ export default function FirefighterMap() {
                <Marker key={s.id_capteur} position={[s.latitude, s.longitude]} icon={customIcon}>
                  <Popup className="font-sans">
                    <div className="text-center w-40 p-1">
-                     <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">Capteur de Terrain</div>
+                     <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">Field Sensor</div>
                      <div className="text-base font-black text-slate-800 tracking-tight">{s.reference_serie}</div>
                      <div className={`mt-3 py-2 rounded-xl text-xl font-black ${hasAlert ? "bg-rose-50 text-rose-600 border border-rose-100" : isInactive ? "bg-slate-50 text-slate-500 border border-slate-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"}`}>
                        {s.latest_reading ? `${s.latest_reading.temperature_c}°C` : "N/A"}
