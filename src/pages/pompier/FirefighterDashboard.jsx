@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldAlert, Radio, UserCheck, Activity, Users, Flame,
-  Search, Filter, ChevronDown, CheckCircle2, RotateCcw, AlertTriangle, XCircle
+  Search, Filter, ChevronDown, CheckCircle2, RotateCcw, AlertTriangle, XCircle, Building2
 } from 'lucide-react';
 import axios from 'axios';
 import useFirefighterSocket from '../../hooks/useFirefighterSocket';
@@ -84,6 +84,8 @@ export const FirefighterDashboard = () => {
       enIntervention: firefighters.filter(f => f.statut === 'en_intervention').length,
       equipesDeployees: [...new Set(firefighters.filter(f => f.statut === 'en_intervention').map(f => f.equipe))].length,
       incidentsActifs: incidents.length,
+      cooperatives: 24, // Mock: data placeholder
+      alertesAnnoncees: incidents.length + 3, // Mock: data placeholder
     };
   }, [firefighters, incidents]);
 
@@ -120,53 +122,45 @@ export const FirefighterDashboard = () => {
         />
       )}
 
-      {/* HEADER FIXE */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-100 px-8 py-4 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-              <ShieldAlert className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="font-black text-xl text-slate-900 tracking-tight leading-none">Argan-Fire Watch</h1>
-              <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Tableau de bord Pompiers</span>
-            </div>
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-8 pt-6 pb-12 space-y-8">
+        
+        {/* HEADER DASHBOARD */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Vue d'ensemble</h1>
+            <p className="text-slate-500 font-medium mt-1">Gérez vos équipes et suivez les incidents en temps réel.</p>
           </div>
-
-          <div className="h-8 w-px bg-slate-100 mx-2"></div>
 
           {/* Connectivité Socket */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-100">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <span className="relative flex h-3 w-3">
               {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
             </span>
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{isConnected ? 'En ligne' : 'Hors ligne'}</span>
+            <span className="text-xs font-bold text-slate-700 tracking-wider uppercase">{isConnected ? 'Connecté (Live)' : 'Hors ligne'}</span>
           </div>
-        </div>
+        </header>
 
-      </header>
-
-      {/* ERREUR BANNER */}
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 m-8 flex items-center justify-between rounded-r-xl">
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-red-500 mr-2"/>
-            <p className="text-sm text-red-700 font-medium">{error}</p>
+        {/* ERREUR BANNER */}
+        {error && (
+          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 flex items-center justify-between rounded-r-xl">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-rose-500 mr-2"/>
+              <p className="text-sm text-rose-700 font-bold">{error}</p>
+            </div>
+            <button onClick={() => setError(null)}><XCircle className="h-5 w-5 text-rose-400 hover:text-rose-600"/></button>
           </div>
-          <button onClick={() => setError(null)}><XCircle className="h-5 w-5 text-red-500 hover:text-red-700"/></button>
-        </div>
-      )}
-
-      {/* MAIN CONTENT */}
-      <main className="max-w-7xl mx-auto px-8 pt-8 space-y-8">
+        )}
         
         {/* SECTION 1 - STATS */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
+          <StatCard title="Coopératives" value={stats.cooperatives} icon={Building2} color="slate" />
+          <StatCard title="Total Alertes" value={stats.alertesAnnoncees} icon={ShieldAlert} color="rose" />
           <StatCard title="Pompiers Dispos" value={stats.disponibles} icon={UserCheck} color="emerald" />
-          <StatCard title="En Intervention" value={stats.enIntervention} icon={Radio} color="orange" />
+          <StatCard title="Interventions" value={stats.enIntervention} icon={Radio} color="orange" />
           <StatCard title="Incidents Actifs" value={stats.incidentsActifs} icon={Flame} color="rose" animatePulse={stats.incidentsActifs > 0} />
-          <StatCard title="Équipes Déployées" value={stats.equipesDeployees} icon={Users} color="slate" />
+          <StatCard title="Équipes" value={stats.equipesDeployees} icon={Users} color="slate" />
         </section>
 
         {/* SECTION 2 - NOTIFICATIONS EN ATTENTE */}
