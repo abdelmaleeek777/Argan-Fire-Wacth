@@ -261,21 +261,66 @@ def get_users():
 
 @admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # ── 1. Supprimer d'abord dans utilisateurs_roles (clé étrangère)
+        cursor.execute("""
+            DELETE FROM utilisateurs_roles
+            WHERE id_utilisateur = %s
+        """, (user_id,))
+
+        # ── 2. Ensuite supprimer dans utilisateurs
+        cursor.execute("""
+            DELETE FROM utilisateurs
+            WHERE id_utilisateur = %s
+        """, (user_id,))
+
+        conn.commit()
+        return jsonify({"message": "User deleted successfully"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print("❌ ERROR delete_user:", e)
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/users/<int:user_id>/block", methods=["PATCH"])
+def block_user(user_id):
+    data = request.get_json()
+    action = data.get("action")  # "block" ou "unblock"
+
+    if action not in ["block", "unblock"]:
+        return jsonify({"error": "Invalid action"}), 400
+
+    # block → SUSPENDU, unblock → ACTIF
+    new_statut = "SUSPENDU" if action == "block" else "ACTIF"
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        DELETE FROM utilisateurs
-        WHERE id_utilisateur = %s
-    """, (user_id,))
+    try:
+        cursor.execute("""
+            UPDATE utilisateurs
+            SET statut = %s
+            WHERE id_utilisateur = %s
+        """, (new_statut, user_id))
 
-    conn.commit()
+        conn.commit()
+        return jsonify({"message": f"User {action}ed", "statut": new_statut}), 200
 
-    cursor.close()
-    conn.close()
+    except Exception as e:
+        conn.rollback()
+        print("❌ ERROR block_user:", e)
+        return jsonify({"error": str(e)}), 500
 
-    return jsonify({"message": "User deleted"})
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @admin_bp.route("/stats", methods=["GET"])
