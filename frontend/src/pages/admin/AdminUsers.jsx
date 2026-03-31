@@ -43,15 +43,30 @@ function AdminUsers() {
   const handleConfirmAction = async () => {
     if (!modal.user) return;
 
-    if (modal.type === "block" || modal.type === "unblock") {
-      setUsers(users.map((u) =>
-        u.id === modal.user.id
-          ? { ...u, status: u.status === "blocked" ? "active" : "blocked" }
-          : u
-      ));
-    } else if (modal.type === "delete") {
-      setUsers(users.filter((u) => u.id !== modal.user.id));
-    } else if (modal.type === "add") {
+if (modal.type === "block" || modal.type === "unblock") {
+  try {
+    await axios.patch(
+      `http://localhost:5000/admin/users/${modal.user.id}/block`,
+      { action: modal.type }  // "block" ou "unblock"
+    );
+
+    // Mettre à jour le state local
+    setUsers(users.map((u) =>
+      u.id === modal.user.id
+        ? { ...u, status: modal.type === "block" ? "blocked" : "active" }
+        : u
+    ));
+  } catch (error) {
+    console.error("Error blocking/unblocking user:", error);
+  }
+} else if (modal.type === "delete") {
+  try {
+    await axios.delete(`http://localhost:5000/admin/users/${modal.user.id}`);
+    setUsers(users.filter((u) => u.id !== modal.user.id));
+  } catch (error) {
+    console.error("Error deleting user:", error);
+  }
+} else if (modal.type === "add") {
       try {
         const response = await axios.post("http://localhost:5000/admin/add", {
           nom:         modal.user.nom,
@@ -239,8 +254,8 @@ function AdminUsers() {
             <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                 {modal.type === "view"    && <><Eye className="w-5 h-5 text-blue-500" /> Account Details</>}
-                {modal.type === "block"   && <><Lock className="w-5 h-5 text-amber-500" /> Block Account</>}
-                {modal.type === "unblock" && <><Unlock className="w-5 h-5 text-emerald-500" /> Unblock Account</>}
+                {modal.type === "block"   && <><Lock className="w-5 h-5 text-amber-500" /> Suspend Account</>}
+                {modal.type === "unblock" && <><Unlock className="w-5 h-5 text-emerald-500" /> Reactivate Account</>}
                 {modal.type === "delete"  && <><AlertTriangle className="w-5 h-5 text-rose-600" /> Confirm Deletion</>}
                 {modal.type === "add"     && <><Users className="w-5 h-5 text-emerald-500" /> Register New Owner</>}
               </h3>
@@ -387,7 +402,7 @@ function AdminUsers() {
                   {modal.type === "block" && (
                     <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 text-left flex gap-3">
                       <Lock className="w-5 h-5 flex-shrink-0" />
-                      The user will no longer be able to log in or receive alerts until unblocked.
+                      The user will no longer be able to log in or receive alerts until reactivated.
                     </div>
                   )}
                 </div>
