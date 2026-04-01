@@ -128,7 +128,7 @@ export default function CoopAlerts() {
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/api/cooperative/${coopId}/alerts`
+        `/api/cooperative/${coopId}/alerts`
       );
       setAlertes(response.data);
     } catch (error) {

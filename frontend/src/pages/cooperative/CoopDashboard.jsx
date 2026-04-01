@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, Legend
 } from "recharts";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const StatCard = ({ label, value, sub, icon: Icon, color, trend }) => (
   <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-all">

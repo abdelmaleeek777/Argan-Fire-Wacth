@@ -9,7 +9,7 @@ import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend
 } from 'recharts';
 
-const ADMIN_API = "http://localhost:5000/admin";
+const ADMIN_API = "/api/admin";
 
 // Dummy data for charts
 const alertTrendsData = [

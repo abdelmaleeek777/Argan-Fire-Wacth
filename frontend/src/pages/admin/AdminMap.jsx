@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const ADMIN_API = "http://localhost:5000/admin";
+const ADMIN_API = "/api/admin";
 
 const risqueFill = {
   faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981", bg: "bg-emerald-300" },

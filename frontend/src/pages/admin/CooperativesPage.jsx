@@ -17,7 +17,7 @@ const CooperativesPage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/admin/cooperatives", {
+      const res = await axios.get("/api/admin/cooperatives", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCooperatives(res.data);

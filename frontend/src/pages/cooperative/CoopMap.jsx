@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const risqueFill = {
   faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981" },

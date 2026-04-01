@@ -12,7 +12,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const ZoneCard = ({ zone, onOpenMap, onDelete }) => (
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col">

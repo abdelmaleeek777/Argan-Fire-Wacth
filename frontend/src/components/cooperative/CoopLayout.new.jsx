@@ -26,7 +26,7 @@ export default function CoopLayout() {
 
   const fetchActiveAlerts = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/cooperative/${coopId}/alerts?limit=5&statut=OUVERTE`);
+      const response = await axios.get(`/api/cooperative/${coopId}/alerts?limit=5&statut=OUVERTE`);
       setActiveAlerts(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error("Error fetching notifications", err);

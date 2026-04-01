@@ -1,5 +1,8 @@
-from flask import Blueprint, jsonify
+import hashlib
+
+from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from werkzeug.security import generate_password_hash
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -124,7 +127,7 @@ def get_all_cooperatives():
             COUNT(cap.id_capteur) AS sensorCount
         FROM cooperatives c
         LEFT JOIN zones_forestieres z
-            ON z.nom_zone = c.zone_name
+            ON z.id_cooperative = c.id_cooperative
         LEFT JOIN capteurs cap
             ON cap.id_zone = z.id_zone
         GROUP BY c.id_cooperative
@@ -171,8 +174,6 @@ def get_cooperative_detail(coop_id):
         if cooperative.get("createdAt"):
             cooperative["createdAt"] = cooperative["createdAt"].isoformat()
 
-        zone_name = cooperative["zone_name"]
-
         # 2️⃣ Zones de cette coopérative
         cursor.execute("""
             SELECT 
@@ -180,8 +181,8 @@ def get_cooperative_detail(coop_id):
                 nom_zone AS name,
                 description
             FROM zones_forestieres
-            WHERE nom_zone = %s
-        """, (zone_name,))
+            WHERE id_cooperative = %s
+        """, (coop_id,))
 
         zones = cursor.fetchall()
 
@@ -195,8 +196,8 @@ def get_cooperative_detail(coop_id):
             FROM capteurs c
             JOIN zones_forestieres z
             ON c.id_zone = z.id_zone
-            WHERE z.nom_zone = %s
-        """, (zone_name,))
+            WHERE z.id_cooperative = %s
+        """, (coop_id,))
 
         sensors = cursor.fetchall()
 
@@ -228,7 +229,13 @@ def get_users():
             u.email,
             u.statut AS status,
             c.nom_cooperative AS cooperative,
-            u.date_creation AS joinedAt
+            u.date_creation AS joinedAt,
+            CASE ur.id_role
+                WHEN 7 THEN 'admin'
+                WHEN 2 THEN 'firefighter'
+                WHEN 3 THEN 'cooperative_owner'
+                ELSE 'unknown'
+            END AS role
         FROM utilisateurs u
 
         JOIN utilisateurs_roles ur
@@ -236,8 +243,6 @@ def get_users():
 
         LEFT JOIN cooperatives c
             ON u.id_utilisateur = c.id_responsable
-
-        WHERE ur.id_role = 3
 
         ORDER BY u.date_creation DESC
     """)
@@ -256,21 +261,66 @@ def get_users():
 
 @admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # ── 1. Supprimer d'abord dans utilisateurs_roles (clé étrangère)
+        cursor.execute("""
+            DELETE FROM utilisateurs_roles
+            WHERE id_utilisateur = %s
+        """, (user_id,))
+
+        # ── 2. Ensuite supprimer dans utilisateurs
+        cursor.execute("""
+            DELETE FROM utilisateurs
+            WHERE id_utilisateur = %s
+        """, (user_id,))
+
+        conn.commit()
+        return jsonify({"message": "User deleted successfully"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print("❌ ERROR delete_user:", e)
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route("/users/<int:user_id>/block", methods=["PATCH"])
+def block_user(user_id):
+    data = request.get_json()
+    action = data.get("action")  # "block" ou "unblock"
+
+    if action not in ["block", "unblock"]:
+        return jsonify({"error": "Invalid action"}), 400
+
+    # block → SUSPENDU, unblock → ACTIF
+    new_statut = "SUSPENDU" if action == "block" else "ACTIF"
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        DELETE FROM utilisateurs
-        WHERE id_utilisateur = %s
-    """, (user_id,))
+    try:
+        cursor.execute("""
+            UPDATE utilisateurs
+            SET statut = %s
+            WHERE id_utilisateur = %s
+        """, (new_statut, user_id))
 
-    conn.commit()
+        conn.commit()
+        return jsonify({"message": f"User {action}ed", "statut": new_statut}), 200
 
-    cursor.close()
-    conn.close()
+    except Exception as e:
+        conn.rollback()
+        print("❌ ERROR block_user:", e)
+        return jsonify({"error": str(e)}), 500
 
-    return jsonify({"message": "User deleted"})
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @admin_bp.route("/stats", methods=["GET"])
@@ -311,7 +361,7 @@ def get_admin_stats():
     cursor.execute("""
         SELECT COUNT(*) AS total
         FROM alertes
-        WHERE statut = 'ACTIVE'
+        WHERE statut in ('ACTIVE','OUVERTE')
     """)
     alerts = cursor.fetchone()["total"]
 
@@ -479,3 +529,81 @@ def get_admin_logs():
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+@admin_bp.route("/add", methods=["POST"])
+def add_user():
+    data = request.get_json()
+    print("📥 Data received:", data)  # ← vérifier que le front envoie bien les données
+
+    required = ["nom", "prenom", "email", "password", "statut", "role"]
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        print("❌ Missing fields:", missing)
+        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+
+    role_map = {
+        "admin":       7,
+        "firefighter": 3,
+    }
+    id_role = role_map.get(data["role"])
+    if id_role is None:
+        print("❌ Invalid role:", data["role"])
+        return jsonify({"error": "Invalid role. Must be 'admin' or 'firefighter'"}), 400
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        print("✅ DB connection OK")
+
+        password_hash = hashlib.sha256(data["password"].encode()).hexdigest()
+        print("✅ Password hashed:", password_hash)
+
+        cursor.execute("""
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash, statut, telephone)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (
+            data["nom"],
+            data["prenom"],
+            data["email"],
+            password_hash,
+            data["statut"],
+            data.get("telephone", None),
+        ))
+        print("✅ User inserted, new id:", cursor.lastrowid)
+
+        new_id = cursor.lastrowid
+
+        cursor.execute("""
+            INSERT INTO utilisateurs_roles (id_utilisateur, id_role)
+            VALUES (%s, %s)
+        """, (new_id, id_role))
+        print("✅ Role inserted for user:", new_id, "with id_role:", id_role)
+
+        conn.commit()
+        print("✅ Commit done")
+
+        return jsonify({
+            "id":        new_id,
+            "nom":       data["nom"],
+            "prenom":    data["prenom"],
+            "email":     data["email"],
+            "statut":    data["statut"],
+            "telephone": data.get("telephone"),
+            "role":      data["role"],
+            "id_role":   id_role,
+        }), 201
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print("❌ ERROR:", str(e))  # ← l'erreur exacte s'affichera ici
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if cursor: cursor.close()
+        if conn:   conn.close()

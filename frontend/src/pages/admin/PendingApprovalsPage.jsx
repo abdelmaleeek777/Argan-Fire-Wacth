@@ -27,7 +27,7 @@ const PendingApprovalsPage = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        "http://localhost:5000/admin/cooperatives/pending",
+        "/api/admin/cooperatives/pending",
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -44,7 +44,7 @@ const PendingApprovalsPage = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/admin/cooperatives/${id}/${action}`,
+        `/api/admin/cooperatives/${id}/${action}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -14,7 +14,7 @@ export default function AdminLogs() {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/admin/logs", {
+      const res = await axios.get("/api/admin/logs", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setLogsInfo(res.data);

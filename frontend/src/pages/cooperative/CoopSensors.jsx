@@ -35,7 +35,7 @@ export default function CoopSensors() {
       setLoading(true);
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/cooperative/${coopId}/sensors`
+          `/api/cooperative/${coopId}/sensors`
         );
         setSensors(Array.isArray(response.data) ? response.data : []);
       } catch (error) {

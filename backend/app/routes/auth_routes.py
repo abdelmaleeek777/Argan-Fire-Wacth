@@ -4,6 +4,7 @@ from app.utils.auth import generate_token
 import hashlib
 import json
 
+
 auth_bp = Blueprint("auth", __name__)
 
 
