@@ -259,3 +259,200 @@ def cooperative_dashboard(coop_id):
     finally:
         cursor.close()
         conn.close()
+
+
+# ===============================
+# COOPERATIVE CHART ENDPOINTS
+# ===============================
+@coop_bp.route("/cooperative/<int:coop_id>/charts/temperature", methods=["GET"])
+def get_cooperative_temperature_chart(coop_id):
+    """Get temperature data for cooperative charts"""
+    from flask import request
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get cooperative's sensors
+        cursor.execute("""
+            SELECT c.id_capteur FROM capteurs c
+            JOIN zones_forestieres z ON c.id_zone = z.id_zone
+            WHERE z.id_cooperative = %s
+        """, (coop_id,))
+        sensor_ids = [row['id_capteur'] for row in cursor.fetchall()]
+        
+        if not sensor_ids:
+            return jsonify([])
+            
+        if duration == '24h':
+            interval = "INTERVAL 24 HOUR"
+            date_format = "%H:00"
+            group_by = "HOUR(horodatage)"
+        elif duration == '30d':
+            interval = "INTERVAL 30 DAY"
+            date_format = "%b %d"
+            group_by = "DATE(horodatage)"
+        else:  # 7d default
+            interval = "INTERVAL 7 DAY"
+            date_format = "%a"
+            group_by = "DATE(horodatage)"
+        
+        placeholders = ",".join(["%s"] * len(sensor_ids))
+        cursor.execute(f"""
+            SELECT 
+                DATE(horodatage) AS date,
+                {group_by} AS period,
+                ROUND(AVG(temperature_c), 1) AS avgTemp,
+                ROUND(MAX(temperature_c), 1) AS maxTemp,
+                ROUND(AVG(humidite_pct), 1) AS humidity
+            FROM mesures
+            WHERE id_capteur IN ({placeholders})
+            AND horodatage >= DATE_SUB(NOW(), {interval})
+            GROUP BY {group_by}, DATE(horodatage)
+            ORDER BY horodatage ASC
+        """, tuple(sensor_ids))
+        
+        results = cursor.fetchall()
+        chart_data = []
+        for r in results:
+            label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+            chart_data.append({
+                "name": label,
+                "avgTemp": float(r["avgTemp"] or 0),
+                "maxTemp": float(r["maxTemp"] or 0),
+                "humidity": float(r["humidity"] or 0)
+            })
+        
+        return jsonify(chart_data)
+        
+    except Exception as e:
+        print(f"Error fetching temperature chart: {e}")
+        return jsonify([])
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@coop_bp.route("/cooperative/<int:coop_id>/charts/alerts", methods=["GET"])
+def get_cooperative_alerts_chart(coop_id):
+    """Get alerts data for cooperative charts"""
+    from flask import request
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        if duration == '24h':
+            interval = "INTERVAL 24 HOUR"
+            date_format = "%H:00"
+            group_by = "HOUR(date_creation)"
+        elif duration == '30d':
+            interval = "INTERVAL 30 DAY"
+            date_format = "%b %d"
+            group_by = "DATE(date_creation)"
+        else:
+            interval = "INTERVAL 7 DAY"
+            date_format = "%a"
+            group_by = "DATE(date_creation)"
+        
+        cursor.execute(f"""
+            SELECT 
+                DATE(date_creation) AS date,
+                {group_by} AS period,
+                SUM(CASE WHEN statut IN ('OUVERTE', 'EN_COURS') THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolved
+            FROM alertes a
+            JOIN capteurs c ON a.id_capteur = c.id_capteur
+            JOIN zones_forestieres z ON c.id_zone = z.id_zone
+            WHERE z.id_cooperative = %s
+            AND date_creation >= DATE_SUB(NOW(), {interval})
+            GROUP BY {group_by}, DATE(date_creation)
+            ORDER BY date_creation ASC
+        """, (coop_id,))
+        
+        results = cursor.fetchall()
+        chart_data = []
+        for r in results:
+            label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+            chart_data.append({
+                "name": label,
+                "active": int(r["active"] or 0),
+                "resolved": int(r["resolved"] or 0)
+            })
+        
+        return jsonify(chart_data)
+        
+    except Exception as e:
+        print(f"Error fetching alerts chart: {e}")
+        return jsonify([])
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@coop_bp.route("/cooperative/<int:coop_id>/charts/sensors", methods=["GET"])
+def get_cooperative_sensors_chart(coop_id):
+    """Get sensor readings data for cooperative charts"""
+    from flask import request
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # Get cooperative's sensors
+        cursor.execute("""
+            SELECT c.id_capteur FROM capteurs c
+            JOIN zones_forestieres z ON c.id_zone = z.id_zone
+            WHERE z.id_cooperative = %s
+        """, (coop_id,))
+        sensor_ids = [row['id_capteur'] for row in cursor.fetchall()]
+        
+        if not sensor_ids:
+            return jsonify([])
+            
+        if duration == '24h':
+            interval = "INTERVAL 24 HOUR"
+            date_format = "%H:00"
+            group_by = "HOUR(horodatage)"
+        elif duration == '30d':
+            interval = "INTERVAL 30 DAY"
+            date_format = "%b %d"
+            group_by = "DATE(horodatage)"
+        else:
+            interval = "INTERVAL 7 DAY"
+            date_format = "%a"
+            group_by = "DATE(horodatage)"
+        
+        placeholders = ",".join(["%s"] * len(sensor_ids))
+        cursor.execute(f"""
+            SELECT 
+                DATE(horodatage) AS date,
+                {group_by} AS period,
+                COUNT(*) AS readings
+            FROM mesures
+            WHERE id_capteur IN ({placeholders})
+            AND horodatage >= DATE_SUB(NOW(), {interval})
+            GROUP BY {group_by}, DATE(horodatage)
+            ORDER BY horodatage ASC
+        """, tuple(sensor_ids))
+        
+        results = cursor.fetchall()
+        chart_data = []
+        for r in results:
+            label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+            chart_data.append({
+                "name": label,
+                "readings": r["readings"]
+            })
+        
+        return jsonify(chart_data)
+        
+    except Exception as e:
+        print(f"Error fetching sensors chart: {e}")
+        return jsonify([])
+    finally:
+        cursor.close()
+        conn.close()

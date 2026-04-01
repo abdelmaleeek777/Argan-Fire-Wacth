@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Map as MapIcon, Layers, Info, ChevronLeft, Loader2, WifiOff } from "lucide-react";
+import { Map as MapIcon, Layers, Info, ChevronLeft, Loader2, WifiOff, Thermometer } from "lucide-react";
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
 
 // Fix default Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -16,10 +17,10 @@ L.Icon.Default.mergeOptions({
 const API_BASE = "/api";
 
 const risqueFill = {
-  faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981" },
-  moyen:    { fill: "rgba(245, 158, 11, 0.1)", stroke: "#f59e0b" },
-  "élevé":  { fill: "rgba(239, 68, 68, 0.1)", stroke: "#ef4444" },
-  critique: { fill: "rgba(168, 85, 247, 0.1)", stroke: "#a855f7" },
+  faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981", bg: "bg-emerald-300" },
+  moyen:    { fill: "rgba(59, 130, 246, 0.1)", stroke: "#3b82f6", bg: "bg-blue-300" },
+  "élevé":  { fill: "rgba(250, 204, 21, 0.1)", stroke: "#facc15", bg: "bg-yellow-300" },
+  critique: { fill: "rgba(239, 68, 68, 0.1)", stroke: "#ef4444", bg: "bg-rose-300" },
 };
 
 const risqueBadge = {
@@ -46,9 +47,58 @@ function getPolygonCenter(coords) {
   ];
 }
 
+// Heatmap Layer Component
+function HeatmapLayer({ points, show }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!show) return;
+    
+    // Filter out invalid points (must have valid lat, lng, and intensity)
+    const validPoints = points.filter(p => 
+      p && 
+      typeof p[0] === 'number' && !isNaN(p[0]) &&
+      typeof p[1] === 'number' && !isNaN(p[1]) &&
+      typeof p[2] === 'number' && !isNaN(p[2])
+    );
+    
+    if (validPoints.length === 0) {
+      console.log("Heatmap: No valid points to display");
+      return;
+    }
+
+    console.log("Heatmap: Displaying", validPoints.length, "points", validPoints);
+
+    const heatLayer = L.heatLayer(validPoints, {
+      radius: 40,
+      blur: 30,
+      maxZoom: 17,
+      max: 60, // Max temperature expected
+      minOpacity: 0.5,
+      gradient: {
+        0.0: '#0000ff',  // Cold (blue)
+        0.25: '#00ffff', // Cool (cyan)
+        0.4: '#00ff00',  // Normal (green)
+        0.6: '#ffff00',  // Warm (yellow)
+        0.8: '#ffa500',  // Hot (orange)
+        1.0: '#ff0000'   // Very hot (red)
+      }
+    });
+
+    heatLayer.addTo(map);
+
+    return () => {
+      map.removeLayer(heatLayer);
+    };
+  }, [map, points, show]);
+
+  return null;
+}
+
 export default function CoopMap() {
   const [selectedZone, setSelectedZone] = useState(null);
   const [showCapteurs, setShowCapteurs] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -68,17 +118,20 @@ export default function CoopMap() {
       return;
     }
     try {
-      const res = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/dashboard`);
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const res = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/dashboard`, { headers });
       const data = res.data;
       setCooperative(data.cooperative);
       setZones(data.zones || []);
       
       // Fetch sensors separately to be sure we get all for all zones
-      const sensRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/sensors`);
-      setSensors(sensRes.data);
+      const sensRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/sensors`, { headers });
+      setSensors(Array.isArray(sensRes.data) ? sensRes.data : []);
       
-      const alRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/alerts`);
-      setAlerts(alRes.data);
+      const alRes = await axios.get(`${API_BASE}/cooperative/${cooperativeId}/alerts`, { headers });
+      setAlerts(Array.isArray(alRes.data) ? alRes.data : []);
       
       setError(null);
     } catch (err) {
@@ -182,6 +235,17 @@ export default function CoopMap() {
         </div>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black border transition-all ${
+              showHeatmap
+                ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-200"
+                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Thermometer className="w-4 h-4" />
+            {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
+          </button>
+          <button
             onClick={() => setShowCapteurs(!showCapteurs)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black border transition-all ${
               showCapteurs
@@ -226,6 +290,19 @@ export default function CoopMap() {
                 </div>
               </div>
             )}
+
+            {showHeatmap && (
+              <div className="border-t border-slate-100 mt-4 pt-4">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <Thermometer className="w-3 h-3 text-orange-500" /> Temperature
+                </div>
+                <div className="h-3 rounded-full bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500" />
+                <div className="flex justify-between mt-1">
+                  <span className="text-[9px] font-bold text-blue-500">Cold</span>
+                  <span className="text-[9px] font-bold text-red-500">Hot</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <MapContainer
@@ -236,6 +313,18 @@ export default function CoopMap() {
           >
             <MapController selectedZoneId={selectedZone} />
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            
+            {/* Heatmap Layer - filter sensors with valid coordinates */}
+            <HeatmapLayer 
+              points={sensors
+                .filter(s => s.latitude && s.longitude)
+                .map(s => [
+                  parseFloat(s.latitude), 
+                  parseFloat(s.longitude), 
+                  parseFloat(s.latest_reading?.temperature_c || s.temperature_c || 30)
+                ])} 
+              show={showHeatmap} 
+            />
 
             {/* Zone Polygons */}
             {zonesWithPolygons.map(z => {

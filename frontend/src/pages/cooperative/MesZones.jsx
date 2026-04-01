@@ -99,10 +99,14 @@ export default function MesZones() {
   const fetchZones = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/cooperative/${coopId}/zones`);
-      setZones(res.data);
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_BASE}/cooperative/${coopId}/zones`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setZones(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching zones", err);
+      setZones([]);
     } finally {
       setLoading(false);
     }
@@ -125,9 +129,12 @@ export default function MesZones() {
 
     try {
       setSaving(true);
+      const token = localStorage.getItem("token");
       await axios.post(`${API_BASE}/cooperative/${coopId}/zones`, {
         name: newZoneName,
         polygon: drawnPolygon
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       setSuccess(true);
@@ -154,7 +161,10 @@ export default function MesZones() {
     }
 
     try {
-      await axios.delete(`${API_BASE}/cooperative/${coopId}/zones/${zoneId}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_BASE}/cooperative/${coopId}/zones/${zoneId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       alert("Zone supprimée avec succès");
       fetchZones();
     } catch (err) {
