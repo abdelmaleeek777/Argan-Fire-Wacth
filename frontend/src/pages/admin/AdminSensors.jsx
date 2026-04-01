@@ -2,550 +2,500 @@ import React, { useState, useEffect } from "react";
 import {
   Cpu,
   Search,
-  Activity,
-  Battery,
-  BatteryCharging,
-  Wifi,
-  WifiOff,
   Thermometer,
   Loader2,
   AlertTriangle,
   RefreshCw,
   Eye,
   X,
-  Plus,
+  MapPin,
+  Signal,
+  Zap,
+  Settings,
+  Droplets,
+  Radio,
+  Wind
 } from "lucide-react";
 
-/**
- * Admin Sensors Management Page (IoT)
- */
 function AdminSensors() {
   const [sensors, setSensors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [modal, setModal] = useState({ isOpen: false, type: null, sensor: null });
 
-  // Custom Modal State
-  const [modal, setModal] = useState({
-    isOpen: false,
-    type: null, // "view", "restart", "add"
-    sensor: null,
-  });
+  useEffect(() => {
+    loadSensors();
+  }, []);
 
-useEffect(() => {
   const loadSensors = async () => {
     setLoading(true);
-
     try {
       const response = await fetch("/api/sensors");
       const data = await response.json();
-
       setSensors(data);
     } catch (error) {
       console.error("Error loading sensors:", error);
     }
-
     setLoading(false);
   };
 
-  loadSensors();
-}, []);
-
-  const getStatusBadge = (status) => {
+  // Status config based on DB values: ACTIF, INACTIF, EN_MAINTENANCE
+  const getStatusConfig = (status) => {
     switch (status) {
-      case "active":
-        return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-      case "warning":
-        return "bg-amber-100 text-amber-700 border border-amber-200";
-      case "offline":
-        return "bg-rose-100 text-rose-700 border border-rose-200";
-      default:
-        return "bg-slate-100 text-slate-700 border border-slate-200";
+      case "ACTIF": return { 
+        bg: "bg-emerald-500", 
+        light: "bg-emerald-100", 
+        text: "text-emerald-700",
+        border: "border-emerald-200",
+        glow: "shadow-emerald-200",
+        label: "Active",
+        dot: "bg-emerald-400 animate-pulse"
+      };
+      case "EN_MAINTENANCE": return { 
+        bg: "bg-amber-500", 
+        light: "bg-amber-100", 
+        text: "text-amber-700",
+        border: "border-amber-200",
+        glow: "shadow-amber-200",
+        label: "Maintenance",
+        dot: "bg-amber-400"
+      };
+      case "INACTIF": return { 
+        bg: "bg-slate-400", 
+        light: "bg-slate-100", 
+        text: "text-slate-600",
+        border: "border-slate-200",
+        glow: "shadow-slate-200",
+        label: "Inactive",
+        dot: "bg-slate-400"
+      };
+      default: return { 
+        bg: "bg-slate-500", 
+        light: "bg-slate-100", 
+        text: "text-slate-700",
+        border: "border-slate-200",
+        glow: "shadow-slate-200",
+        label: status || "Unknown",
+        dot: "bg-slate-400"
+      };
     }
   };
 
-  const getBatteryIcon = (level) => {
-    if (level > 80) return <Battery className="w-4 h-4 text-emerald-500" />;
-    if (level > 20)
-      return <BatteryCharging className="w-4 h-4 text-amber-500" />;
-    return <Battery className="w-4 h-4 text-rose-500" />;
-  };
-
-  const getConnectivityIcon = (conn) => {
+  const getConnConfig = (conn) => {
     switch (conn) {
-      case "excellent":
-      case "good":
-        return <Wifi className="w-4 h-4 text-emerald-500" />;
-      case "weak":
-        return <Wifi className="w-4 h-4 text-amber-500" />;
-      case "offline":
-        return <WifiOff className="w-4 h-4 text-rose-500" />;
-      default:
-        return <Wifi className="w-4 h-4 text-slate-400" />;
+      case "excellent": return { icon: Signal, color: "text-emerald-500", bars: 4 };
+      case "good": return { icon: Signal, color: "text-emerald-500", bars: 3 };
+      case "weak": return { icon: Signal, color: "text-amber-500", bars: 2 };
+      default: return { icon: Signal, color: "text-slate-400", bars: 1 };
     }
   };
 
   const handleConfirmAction = async () => {
     if (modal.type === "restart" && modal.sensor) {
-      // Simulate restarting the sensor (changing status temporarily to indicate action)
-      setSensors(
-        sensors.map((s) =>
-          s.id === modal.sensor.id
-            ? {
-                ...s,
-                status: "active",
-                connectivity: "excellent",
-                battery: 100,
-                lastPing: "Just now",
-              }
-            : s,
-        ),
-      );
+      setSensors(sensors.map(s =>
+        s.id === modal.sensor.id
+          ? { ...s, status: "active", connectivity: "excellent", battery: 100, lastPing: "Just now" }
+          : s
+      ));
     } else if (modal.type === "add" && modal.sensor) {
-  try {
-    const response = await fetch("/api/sensors", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(modal.sensor),
-    });
-
-    const data = await response.json();
-
-    setSensors([...sensors, data]); // ajouter depuis backend
-  } catch (error) {
-    console.error("Error adding sensor:", error);
-  }
-}
+      try {
+        const response = await fetch("/api/sensors", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(modal.sensor),
+        });
+        const data = await response.json();
+        setSensors([...sensors, data]);
+      } catch (error) {
+        console.error("Error adding sensor:", error);
+      }
+    }
     closeModal();
   };
 
   const openModal = (type, sensor = null) => {
-    setModal({ isOpen: true, type, sensor });
+    setModal({ isOpen: true, type, sensor: sensor || {} });
   };
 
   const closeModal = () => {
     setModal({ isOpen: false, type: null, sensor: null });
   };
 
-const filteredSensors = sensors.filter((s) => {
-  const matchesSearch =
-    String(s.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredSensors = sensors.filter((s) => {
+    const matchesSearch =
+      String(s.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.cooperative?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const temp = s.temperature || 0;
+    const isWarning = temp > 45; // High temperature = fire risk warning
+    
+    let matchesStatus = true;
+    if (statusFilter === "all") {
+      matchesStatus = true;
+    } else if (statusFilter === "warning") {
+      matchesStatus = isWarning;
+    } else if (statusFilter === "normal") {
+      matchesStatus = !isWarning;
+    }
+    
+    return matchesSearch && matchesStatus;
+  });
 
-  const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-
-  return matchesSearch && matchesStatus;
-});
+  // Stats based on temperature
+  const stats = {
+    total: sensors.length,
+    normal: sensors.filter(s => (s.temperature || 0) <= 45).length,
+    warning: sensors.filter(s => (s.temperature || 0) > 45).length,
+  };
 
   return (
-    <div className="space-y-8 relative">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 border-none pb-0 mb-0 flex items-center gap-2">
-            <Cpu className="w-6 h-6 text-emerald-600" />
-            IoT Sensors
-          </h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            Monitor status, battery, and connectivity of deployed sensors.
-          </p>
+    <div className="space-y-6">
+      {/* Epic Header */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-cyan-900 to-emerald-900 p-8">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTMwIDMwbDMwLTMwdjYwSDMweiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-cyan-500/20 to-transparent rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-emerald-500/20 to-transparent rounded-full blur-3xl"></div>
+        
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-cyan-500/30">
+              <Radio className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white tracking-tight">
+                Sensor Network
+              </h1>
+              <p className="text-cyan-200/80 text-sm mt-1">
+                IoT monitoring • {sensors.length} devices deployed
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={loadSensors}
+              className="flex items-center gap-2 px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all text-sm font-bold"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            </button>
+          </div>
         </div>
 
+        {/* Stats Row */}
+        <div className="relative grid grid-cols-3 gap-4 mt-8">
+          {[
+            { label: "Total", value: stats.total, icon: Cpu, color: "from-slate-500/50 to-slate-600/50" },
+            { label: "Normal", value: stats.normal, icon: Zap, color: "from-emerald-500/50 to-emerald-600/50" },
+            { label: "Warning", value: stats.warning, icon: AlertTriangle, color: "from-rose-500/50 to-orange-500/50" },
+          ].map((stat, i) => (
+            <div key={i} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${stat.color} backdrop-blur-sm border border-white/10 p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-3xl font-black text-white mt-1">{stat.value}</p>
+                </div>
+                <stat.icon className="w-8 h-8 text-white/30" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+      {/* Filters Bar */}
+      <div className="flex flex-wrap items-center gap-3 bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/50 shadow-xl shadow-slate-200/50">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Rechercher par ID ou localisation..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+            placeholder="Search sensors..."
+            className="w-full pl-10 pr-3 py-2.5 bg-slate-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm font-medium"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <select
-            className="bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl focus:outline-none focus:border-emerald-500 text-sm font-medium flex-1 md:flex-none"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="warning">Warning</option>
-            <option value="offline">Offline</option>
-          </select>
+
+        <div className="w-px h-8 bg-slate-200 hidden sm:block"></div>
+
+        {/* Status Filter */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl flex-shrink-0">
+          {[
+            { value: "all", label: "All", dot: "bg-slate-500", count: stats.total },
+            { value: "normal", label: "Normal", dot: "bg-emerald-500", count: stats.normal },
+            { value: "warning", label: "Warning", dot: "bg-rose-500", count: stats.warning },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                statusFilter === opt.value ? "bg-white text-slate-800 shadow-lg" : "text-slate-500 hover:text-slate-700"
+              } ${opt.count === 0 && opt.value !== "all" ? "opacity-50" : ""}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${opt.dot} ${opt.value === "warning" && opt.count > 0 ? "animate-pulse" : ""}`}></span>
+              {opt.label}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                statusFilter === opt.value ? "bg-slate-200" : "bg-slate-200/50"
+              }`}>{opt.count}</span>
+            </button>
+          ))}
         </div>
+
+        <span className="ml-auto text-sm text-slate-500 flex-shrink-0">
+          <span className="font-black text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg">{filteredSensors.length}</span> sensors
+        </span>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-            <p className="text-slate-500 font-medium">
-              Chargement des données capteurs...
-            </p>
+      {/* Content */}
+      {loading ? (
+        <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl border border-slate-200 p-20 flex flex-col items-center justify-center">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-slate-200 border-t-emerald-500 animate-spin"></div>
+            <Radio className="w-6 h-6 text-cyan-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-bold">Sensor</th>
-                  <th className="px-6 py-4 font-bold">Status</th>
-                  <th className="px-6 py-4 font-bold">Battery & Network</th>
-                  <th className="px-6 py-4 font-bold">Current Readings</th>
-                  <th className="px-6 py-4 font-bold">Last Ping</th>
-                  <th className="px-6 py-4 font-bold text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredSensors.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="6"
-                      className="px-6 py-12 text-center text-slate-500"
-                    >
-                      Aucun capteur ne correspond à votre recherche.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredSensors.map((sensor) => (
-                    <tr
-                      key={sensor.id}
-                      className="hover:bg-slate-50/50 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 border-white shadow-sm shrink-0 ${sensor.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
-                              sensor.status === 'warning' ? 'bg-amber-100 text-amber-700' :
-                                'bg-rose-100 text-rose-700'
-                            }`}>
-                            <Cpu className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900 font-mono text-sm">
-                              {sensor.id}
-                            </div>
-                            <div className="text-sm text-slate-500">
-                              {sensor.location}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusBadge(sensor.status)}`}
-                        >
-                          {sensor.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
-                            {getBatteryIcon(sensor.battery)}
-                            {sensor.battery}%
-                            {sensor.battery < 20 && (
-                              <AlertTriangle className="w-3 h-3 text-rose-500 ml-1" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-500 capitalize">
-                            {getConnectivityIcon(sensor.connectivity)}
-                            {sensor.connectivity}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {sensor.status === "offline" ? (
-                          <span className="text-slate-400 text-sm italic">
-                            Data unavailable
-                          </span>
-                        ) : (
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                              <Thermometer className="w-4 h-4 text-orange-500" />
-                              {sensor.temperature}°C
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-slate-500">
-                              <Activity className="w-4 h-4 text-blue-500" />
-                              {sensor.humidity}% Humidity
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {sensor.lastPing}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-
-                          {/* Viewer Info Action */}
-                          <button
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip"
-                            title="Détails du capteur"
-                            onClick={() => openModal("view", sensor)}
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-
-                          {/* Restart/Reset Action */}
-                          <button
-                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors tooltip"
-                            title="Redémarrer le capteur"
-                            onClick={() => openModal("restart", sensor)}
-                          >
-                            <RefreshCw className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <p className="text-slate-500 font-bold mt-6">Scanning sensor network...</p>
+        </div>
+      ) : filteredSensors.length === 0 ? (
+        <div className="bg-gradient-to-br from-slate-50 to-white rounded-3xl border border-slate-200 p-20 flex flex-col items-center justify-center">
+          <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+            <Cpu className="w-12 h-12 text-slate-300" />
           </div>
-        )}
-      </div>
+          <h3 className="text-xl font-black text-slate-800">No Sensors Found</h3>
+          <p className="text-slate-500 mt-2">Try adjusting your filters</p>
+        </div>
+      ) : (
+        /* Grid View */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredSensors.map(sensor => {
+            const statusConfig = getStatusConfig(sensor.status);
+            const temp = sensor.temperature || 0;
 
-      {/* --- Custom Modal UI --- */}
-      {modal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                {modal.type === "view" && <span className="flex items-center gap-2"><Eye className="w-5 h-5 text-blue-500" /> Sensor details</span>}
-                {modal.type === "restart" && <span className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-500" /> Restart Sensor</span>}
-                {modal.type === "add" && <span className="flex items-center gap-2"><Plus className="w-5 h-5 text-emerald-500" />New sensor</span>}
-              </h3>
-              <button
-                onClick={closeModal}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 hover:bg-slate-200 rounded-full"
+            return (
+              <div 
+                key={sensor.id}
+                className="group relative bg-white rounded-2xl border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <div className="p-5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${statusConfig.light} flex items-center justify-center`}>
+                        <Cpu className={`w-5 h-5 ${statusConfig.text}`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800 text-sm">{sensor.cooperative || sensor.zoneName || "Unknown Coop"}</h3>
+                        <p className="text-slate-400 text-[10px] font-mono">{sensor.id}</p>
+                      </div>
+                    </div>
+                    <div className={`w-2.5 h-2.5 rounded-full ${statusConfig.dot}`}></div>
+                  </div>
+
+                  {/* Temperature - Big Display with Shadow */}
+                  <div className={`rounded-2xl p-4 mb-3 text-center shadow-lg ${
+                    temp > 45 ? "bg-gradient-to-br from-rose-100 to-orange-100 shadow-rose-200/50" : 
+                    temp > 35 ? "bg-gradient-to-br from-orange-100 to-amber-100 shadow-orange-200/50" : 
+                    "bg-gradient-to-br from-emerald-100 to-cyan-100 shadow-emerald-200/50"
+                  }`}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Thermometer className={`w-6 h-6 ${temp > 45 ? "text-rose-500" : temp > 35 ? "text-orange-500" : "text-emerald-500"}`} />
+                      <span className={`text-4xl font-black ${temp > 45 ? "text-rose-600" : temp > 35 ? "text-orange-600" : "text-emerald-600"}`}>
+                        {Math.round(temp)}°
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Other Readings */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                      <Droplets className="w-4 h-4 text-blue-500 mx-auto mb-1" />
+                      <p className="text-lg font-black text-slate-700">{sensor.humidity || 0}%</p>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold">Humidity</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                      <Wind className="w-4 h-4 text-slate-500 mx-auto mb-1" />
+                      <p className="text-lg font-black text-slate-700">{sensor.windSpeed || 0}</p>
+                      <p className="text-[9px] text-slate-400 uppercase font-bold">Wind km/h</p>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                      <Signal className="w-3.5 h-3.5" />
+                      <span>{sensor.signalQuality || 100}%</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{sensor.location}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Modal */}
+      {modal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className={`p-6 ${
+              modal.type === "view" ? "bg-gradient-to-r from-blue-500 to-cyan-500" :
+              modal.type === "restart" ? "bg-gradient-to-r from-amber-500 to-orange-500" :
+              "bg-gradient-to-r from-emerald-500 to-cyan-500"
+            }`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black text-white flex items-center gap-3">
+                  {modal.type === "view" && <><Eye className="w-6 h-6" /> Sensor Details</>}
+                  {modal.type === "restart" && <><RefreshCw className="w-6 h-6" /> Restart Sensor</>}
+                  {modal.type === "add" && <><Plus className="w-6 h-6" /> Add New Sensor</>}
+                </h3>
+                <button onClick={closeModal} className="p-2 hover:bg-white/20 rounded-xl transition-colors text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}
             <div className="p-6">
               {modal.type === "view" && modal.sensor && (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 border-4 border-white shadow-md">
-                      <Cpu className="w-8 h-8" />
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                    <div className={`w-14 h-14 rounded-xl ${getStatusConfig(modal.sensor.status).light} flex items-center justify-center`}>
+                      <Cpu className={`w-7 h-7 ${getStatusConfig(modal.sensor.status).text}`} />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-slate-900 font-mono">
-                        {modal.sensor.id}
-                      </h4>
-                      <p className="text-slate-500 text-sm">
-                        {modal.sensor.location}
+                      <h4 className="text-lg font-black text-slate-900 font-mono">{modal.sensor.id}</h4>
+                      <p className="text-slate-500 text-sm flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {modal.sensor.location}
                       </p>
                     </div>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">GPS Coordinates</span>
-                      <span className="font-mono text-sm text-slate-800">
-                        {modal.sensor.coordinates}
-                      </span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Status</p>
+                      <p className={`font-bold ${getStatusConfig(modal.sensor.status).text}`}>{getStatusConfig(modal.sensor.status).label}</p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Battery Level</span>
-                      <span className="font-bold flex items-center gap-1">
-                        {getBatteryIcon(modal.sensor.battery)}{" "}
-                        {modal.sensor.battery}%
-                      </span>
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Signal</p>
+                      <p className="font-bold text-slate-800">{modal.sensor.connectivity || "N/A"}</p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Last Ping</span>
-                      <span className="font-bold text-slate-800">
-                        {modal.sensor.lastPing}
-                      </span>
+                    <div className="bg-orange-50 p-4 rounded-xl">
+                      <p className="text-[10px] uppercase font-bold text-orange-500 mb-1">Temperature</p>
+                      <p className="font-bold text-orange-600">{modal.sensor.temperature || "N/A"}°C</p>
                     </div>
+                    <div className="bg-blue-50 p-4 rounded-xl">
+                      <p className="text-[10px] uppercase font-bold text-blue-500 mb-1">Humidity</p>
+                      <p className="font-bold text-blue-600">{modal.sensor.humidity || "N/A"}%</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl col-span-2">
+                      <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Wind Speed</p>
+                      <p className="font-bold text-slate-700">{modal.sensor.windSpeed || 0} km/h</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">GPS Coordinates</p>
+                    <p className="font-mono text-sm text-slate-800">{modal.sensor.coordinates || `${modal.sensor.latitude}, ${modal.sensor.longitude}`}</p>
                   </div>
                 </div>
               )}
 
               {modal.type === "restart" && modal.sensor && (
                 <div className="text-center">
-                  <p className="text-slate-600 mb-2">
-                    Are you sure you want to send a remote restart signal to
-                    sensor:
-                  </p>
-                  <p className="text-lg font-bold text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
-
-                  <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 mt-6 text-left flex gap-3">
+                  <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <RefreshCw className="w-10 h-10 text-amber-600" />
+                  </div>
+                  <p className="text-slate-600 mb-2">Send remote restart signal to:</p>
+                  <p className="text-xl font-black text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
+                  <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 text-left flex gap-3">
                     <AlertTriangle className="w-5 h-5 shrink-0" />
-                    The sensor will be temporarily offline (30-60 seconds)
-                    during the hardware reboot.
+                    Sensor will be offline for 30-60 seconds during reboot.
                   </div>
                 </div>
               )}
 
               {modal.type === "add" && (
-  <div className="space-y-4">
-    {/* Serial Number */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Serial Number
-      </label>
-      <input
-        type="text"
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-        placeholder="e.g. SN-ARG-999"
-        value={modal.sensor.id || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, id: e.target.value } })
-        }
-      />
-    </div>
-
-    {/* Sensor Type — SELECT */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Sensor Type
-      </label>
-      <select
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-        value={modal.sensor.type || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, type: e.target.value } })
-        }
-      >
-        <option value="">-- Select a type --</option>
-        <option value="temperature">Temperature</option>
-        <option value="multi">Multi-parameter</option>
-        <option value="wind">Wind</option>
-        <option value="humidity">Humidity</option>
-      </select>
-    </div>
-
-    {/* Model */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Model
-      </label>
-      <input
-        type="text"
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-        placeholder="e.g. SensorPro X200"
-        value={modal.sensor.model || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, model: e.target.value } })
-        }
-      />
-    </div>
-
-    {/* Latitude & Longitude side by side */}
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">
-          Latitude
-        </label>
-        <input
-          type="text"
-          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-          placeholder="e.g. 30.123"
-          value={modal.sensor.latitude || ""}
-          onChange={(e) =>
-            setModal({ ...modal, sensor: { ...modal.sensor, latitude: e.target.value } })
-          }
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-bold text-slate-700 mb-1">
-          Longitude
-        </label>
-        <input
-          type="text"
-          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-          placeholder="e.g. -9.456"
-          value={modal.sensor.longitude || ""}
-          onChange={(e) =>
-            setModal({ ...modal, sensor: { ...modal.sensor, longitude: e.target.value } })
-          }
-        />
-      </div>
-    </div>
-
-    {/* Altitude */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Altitude (m)
-      </label>
-      <input
-        type="text"
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 font-mono"
-        placeholder="e.g. 150"
-        value={modal.sensor.altitude || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, altitude: e.target.value } })
-        }
-      />
-    </div>
-
-    {/* Status — SELECT */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Status
-      </label>
-      <select
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-        value={modal.sensor.status || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, status: e.target.value } })
-        }
-      >
-        <option value="">-- Select a status --</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="maintenance">Under Maintenance</option>
-      </select>
-    </div>
-
-    {/* Cooperative */}
-    <div>
-      <label className="block text-sm font-bold text-slate-700 mb-1">
-        Cooperative
-      </label>
-      <input
-        type="text"
-        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
-        placeholder="e.g. Cooperative Name"
-        value={modal.sensor.cooperative || ""}
-        onChange={(e) =>
-          setModal({ ...modal, sensor: { ...modal.sensor, cooperative: e.target.value } })
-        }
-      />
-    </div>
-  </div>
-)}
-</div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Serial Number</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                      placeholder="e.g. SN-ARG-999"
+                      value={modal.sensor?.id || ""}
+                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, id: e.target.value } })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Latitude</label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                        placeholder="30.123"
+                        value={modal.sensor?.latitude || ""}
+                        onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, latitude: e.target.value } })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Longitude</label>
+                      <input
+                        type="text"
+                        className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
+                        placeholder="-9.456"
+                        value={modal.sensor?.longitude || ""}
+                        onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, longitude: e.target.value } })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location Name</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                      placeholder="e.g. North Ridge Sector A"
+                      value={modal.sensor?.location || ""}
+                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, location: e.target.value } })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensor Type</label>
+                    <select
+                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
+                      value={modal.sensor?.type || ""}
+                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, type: e.target.value } })}
+                    >
+                      <option value="">Select type...</option>
+                      <option value="MULTI">Multi-parameter</option>
+                      <option value="TEMPERATURE">Temperature</option>
+                      <option value="HUMIDITY">Humidity</option>
+                      <option value="WIND">Wind</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-{modal.type === "add" && (
-  <>
-    <button
-      onClick={closeModal}
-      className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl"
-    >
-      Cancel
-    </button>
-
-    <button
-      onClick={handleConfirmAction}
-      className="px-6 py-2.5 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl"
-    >
-      Add Sensor
-    </button>
-  </>
-)}
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <button onClick={closeModal} className="px-5 py-2.5 font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors">
+                Cancel
+              </button>
+              {modal.type === "restart" && (
+                <button onClick={handleConfirmAction} className="px-6 py-2.5 font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-lg shadow-amber-200 transition-all">
+                  Restart Now
+                </button>
+              )}
+              {modal.type === "add" && (
+                <button onClick={handleConfirmAction} className="px-6 py-2.5 font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 rounded-xl shadow-lg shadow-emerald-200 transition-all">
+                  Add Sensor
+                </button>
+              )}
             </div>
           </div>
         </div>

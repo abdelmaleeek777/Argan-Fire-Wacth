@@ -34,9 +34,9 @@ const AdminLayout = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
+    <div className="min-h-screen bg-slate-50">
+      {/* Sidebar - Fixed */}
+      <aside className="fixed top-0 left-0 w-64 h-screen bg-white border-r border-slate-200 hidden md:flex flex-col z-40">
         <div className="p-6 border-b border-slate-100">
           <Link to="/admin" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -82,8 +82,8 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      {/* Main Content - Offset for fixed sidebar */}
+      <div className="md:ml-64 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
           <div className="flex items-center gap-4 md:hidden">

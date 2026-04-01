@@ -44,9 +44,9 @@ def register():
 
         # 2. Create User
         cursor.execute("""
-            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash, statut)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (nom, prenom, email, password_hash, 'pending'))
+            INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe_hash,statut)
+            VALUES (%s, %s, %s, %s,%s)
+        """, (nom, prenom, email, password_hash,'pending'))
         user_id = cursor.lastrowid
 
         # 3. Assign Role (UTILISATEUR_COOP)

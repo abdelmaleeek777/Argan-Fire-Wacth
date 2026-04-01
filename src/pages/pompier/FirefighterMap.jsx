@@ -18,11 +18,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Assuming firefighters fetch map data from the same admin endpoint, or adapt as needed
-<<<<<<< HEAD
-const API_URL = "/api/admin";
-=======
 const API_URL = "http://localhost:5000/admin";
->>>>>>> 0b553ddb89902885c925f502ab1b1d261d90b1c3
 
 const risqueFill = {
   faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981", bg: "bg-emerald-300" },
