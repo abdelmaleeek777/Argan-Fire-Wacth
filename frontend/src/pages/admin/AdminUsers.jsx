@@ -21,7 +21,7 @@ function AdminUsers() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/admin/users");
+        const res = await axios.get("/api/admin/users");
         setUsers(res.data);
       } catch (error) {
         console.error(error);
@@ -46,7 +46,7 @@ function AdminUsers() {
 if (modal.type === "block" || modal.type === "unblock") {
   try {
     await axios.patch(
-      `http://localhost:5000/admin/users/${modal.user.id}/block`,
+      `/api/admin/users/${modal.user.id}/block`,
       { action: modal.type }  // "block" ou "unblock"
     );
 
@@ -61,14 +61,14 @@ if (modal.type === "block" || modal.type === "unblock") {
   }
 } else if (modal.type === "delete") {
   try {
-    await axios.delete(`http://localhost:5000/admin/users/${modal.user.id}`);
+    await axios.delete(`/api/admin/users/${modal.user.id}`);
     setUsers(users.filter((u) => u.id !== modal.user.id));
   } catch (error) {
     console.error("Error deleting user:", error);
   }
 } else if (modal.type === "add") {
       try {
-        const response = await axios.post("http://localhost:5000/admin/add", {
+        const response = await axios.post("/api/admin/add", {
           nom:         modal.user.nom,
           prenom:      modal.user.prenom,
           email:       modal.user.email,

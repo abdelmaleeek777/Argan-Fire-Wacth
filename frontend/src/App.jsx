@@ -24,13 +24,12 @@ import CoopLayout from "./components/cooperative/CoopLayout";
 import CoopDashboard from "./pages/cooperative/CoopDashboard";
 import CoopAlerts from "./pages/cooperative/CoopAlerts";
 import CoopMap from "./pages/cooperative/CoopMap";
-import CoopProfile from "./pages/cooperative/CoopProfile";
+import MesZones from "./pages/cooperative/MesZones";
+import CoopSensors from "./pages/cooperative/CoopSensors";
 
-// Pompier
-import FirefighterLayout from "./components/pompier/FirefighterLayout";
+// Pompier (Firefighter)
 import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
-import FirefighterMap from "./pages/pompier/FirefighterMap";
-import FirefighterAlerts from "./pages/pompier/FirefighterAlerts";
+
 
 import "./App.css";
 
@@ -108,17 +107,24 @@ function App() {
           <Route index element={<Navigate to="/coop/dashboard" replace />} />
           <Route path="dashboard" element={<CoopDashboard />} />
           <Route path="alerts" element={<CoopAlerts />} />
+          <Route path="zones" element={<MesZones />} />
+          <Route path="sensors" element={<CoopSensors />} />
           <Route path="map" element={<CoopMap />} />
-          <Route path="profile" element={<CoopProfile />} />
         </Route>
 
-        {/* Pompier Routes */}
-        <Route path="/pompier" element={<FirefighterLayout />}>
-          <Route index element={<Navigate to="/pompier/dashboard" replace />} />
-          <Route path="dashboard" element={<FirefighterDashboard />} />
-          <Route path="map" element={<FirefighterMap />} />
-          <Route path="alerts" element={<FirefighterAlerts />} />
-        </Route>
+        {/* Pompier (Firefighter) Routes */}
+        <Route 
+          path="/pompier/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["POMPIER", "FIREFIGHTER", "CHEF_EQUIPE"]}>
+              <FirefighterDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/pompier" 
+          element={<Navigate to="/pompier/dashboard" replace />}
+        />
       </Routes>
     </div>
   );

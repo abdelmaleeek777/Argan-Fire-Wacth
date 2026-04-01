@@ -20,6 +20,8 @@ export default function CoopLayout() {
     { name: "Sensors", path: "/coop/sensors", icon: Cpu },
     { name: "Alerts", path: "/coop/alerts", icon: Bell, badge: true },
     { name: "Map", path: "/coop/map", icon: MapIcon },
+    { name: "Settings", path: "/coop/settings", icon: Settings },
+    { name: "Help", path: "/coop/help", icon: HelpCircle },
   ];
 
   const fetchActiveAlerts = async () => {
@@ -113,9 +115,9 @@ export default function CoopLayout() {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* User Info */}
+            {/* User Info - Left side */}
             <div className="hidden lg:flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
                 <span className="text-emerald-700 font-bold text-sm">
                   {(user.prenom?.[0] || 'U')}{(user.nom?.[0] || '')}
                 </span>
@@ -126,8 +128,9 @@ export default function CoopLayout() {
               </div>
             </div>
 
-            {/* Right side */}
+            {/* Right side icons */}
             <div className="flex items-center gap-2">
+              {/* Search */}
               <div className="hidden md:flex items-center bg-gray-100 rounded-full px-4 py-2 w-64">
                 <Search className="w-4 h-4 text-gray-400 mr-2" />
                 <input 
@@ -136,7 +139,9 @@ export default function CoopLayout() {
                   className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
                 />
               </div>
-              <button className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+
+              {/* Icons */}
+              <button className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors relative">
                 <Mail className="w-5 h-5" />
               </button>
               <button className="p-2.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors relative">
@@ -144,6 +149,11 @@ export default function CoopLayout() {
                 {activeAlerts.length > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
                 )}
+              </button>
+              <button className="p-1.5 hover:bg-gray-100 rounded-full transition-colors">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
+                  ⋮
+                </div>
               </button>
             </div>
           </div>
@@ -155,7 +165,7 @@ export default function CoopLayout() {
         </main>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/30" onClick={() => setIsMobileMenuOpen(false)} />
@@ -167,7 +177,7 @@ export default function CoopLayout() {
                 </div>
                 <span className="font-bold text-lg text-emerald-600">ArganFire</span>
               </div>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-400">
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -181,8 +191,10 @@ export default function CoopLayout() {
                     key={item.name}
                     to={item.path}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium ${
-                      isActive ? "bg-emerald-500 text-white" : "text-gray-600 hover:bg-gray-50"
+                    className={`flex items-center gap-3 px-4 py-3 mb-1 rounded-xl text-sm font-medium transition-all ${
+                      isActive 
+                        ? "bg-emerald-500 text-white" 
+                        : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     <Icon className="w-5 h-5" />

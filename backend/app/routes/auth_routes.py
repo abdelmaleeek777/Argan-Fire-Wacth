@@ -1,5 +1,6 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session,jsonify
+from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify
 from app.config import get_db_connection
+from app.utils.auth import generate_token
 import hashlib
 import json
 
@@ -58,11 +59,9 @@ def register():
             """, (user_id, role["id_role"]))
 
         # 4. Create Forest Zone
-        # Convert polygon [ [lng, lat], ... ] to WKT POLYGON((lng lat, ...))
-        # Ensure the polygon is closed (first point == last point)
         if polygon[0] != polygon[-1]:
             polygon.append(polygon[0])
-        
+
         wkt_coords = ", ".join([f"{p[0]} {p[1]}" for p in polygon])
         wkt_polygon = f"POLYGON(({wkt_coords}))"
 
@@ -72,11 +71,17 @@ def register():
         """, (zone_name, region, wkt_polygon, address))
         zone_id = cursor.lastrowid
 
-        # 5. Create Cooperative
+        # 5. Create Cooperative with region
         cursor.execute("""
-            INSERT INTO cooperatives (nom_cooperative, siege_social, email_contact, telephone, id_responsable, id_zone)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (coop_name, address, email, phone, user_id, zone_id))
+            INSERT INTO cooperatives (nom_cooperative, siege_social, email_contact, telephone, id_responsable, id_zone, region)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (coop_name, address, email, phone, user_id, zone_id, region))
+        coop_id = cursor.lastrowid
+
+        # 6. Update Zone to link it to the cooperative
+        cursor.execute("""
+            UPDATE zones_forestieres SET id_cooperative = %s WHERE id_zone = %s
+        """, (coop_id, zone_id))
 
         conn.commit()
         return {"message": "Registration successful"}, 201
@@ -126,15 +131,15 @@ def login():
 
     try:
         cursor.execute(query, (email,))
-        user = cursor.fetchone()
+        user_row = cursor.fetchone()
 
-        if not user:
+        if not user_row:
             return {"message": "User not found"}, 404
 
-        if user["statut"] not in ["ACTIF", "approved"]:
+        if user_row["statut"] not in ["ACTIF", "approved"]:
             return {"message": "Account inactive or suspended"}, 403
 
-        if user["mot_de_passe_hash"] != password_hash:
+        if user_row["mot_de_passe_hash"] != password_hash:
             return {"message": "Invalid password"}, 401
 
         # ✅ Récupérer le cooperative_id
@@ -143,7 +148,7 @@ def login():
             FROM cooperatives
             WHERE id_responsable = %s
             LIMIT 1
-        """, (user["id_utilisateur"],))
+        """, (user_row["id_utilisateur"],))
         membre = cursor.fetchone()
         cooperative_id = membre["id_cooperative"] if membre else None
 
@@ -152,21 +157,22 @@ def login():
             UPDATE utilisateurs
             SET derniere_connexion = NOW()
             WHERE id_utilisateur=%s
-        """, (user["id_utilisateur"],))
+        """, (user_row["id_utilisateur"],))
         conn.commit()
 
-        session["user_id"] = user["id_utilisateur"]
-        session["role"] = user["role"]
+        # 🛡️ Generate real JWT
+        token = generate_token(user_row["id_utilisateur"], user_row["role"])
 
         return {
             "message": "Login successful",
+            "token": token,
             "user": {
-                "id": user["id_utilisateur"],
-                "nom": user["nom"],
-                "prenom": user["prenom"],
-                "email": user["email"],
-                "role": user["role"],
-                "cooperative_id": cooperative_id  # ✅ ajouté
+                "id": user_row["id_utilisateur"],
+                "nom": user_row["nom"],
+                "prenom": user_row["prenom"],
+                "email": user_row["email"],
+                "role": user_row["role"],
+                "cooperative_id": cooperative_id
             }
         }, 200
 

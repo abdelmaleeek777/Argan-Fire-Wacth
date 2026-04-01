@@ -10,9 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as turf from '@turf/turf';
 
-// Icons & style imports (assumes they are handled by bundler/css)
-
-export const IncidentNotificationModal = ({ incident, onAccept, onRefuse, onClose }) => {
+export const IncidentNotificationModal= ({ incident, onAccept, onRefuse, onClose }) => {
   const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [isAccepting, setIsAccepting] = useState(false);

@@ -53,7 +53,7 @@ const CooperativeDetailPage = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:5000/admin/cooperatives/${id}`,
+        `/api/admin/cooperatives/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -72,7 +72,7 @@ const CooperativeDetailPage = () => {
       let isConfirm = window.confirm(`Are you sure you want to ${action} this cooperative?`);
       if(!isConfirm) return;
       await axios.patch(
-        `http://localhost:5000/admin/cooperatives/${id}/${action}`,
+        `/api/admin/cooperatives/${id}/${action}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

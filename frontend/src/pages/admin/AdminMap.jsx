@@ -5,8 +5,9 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.heat";
 import {
-  Layers, Cpu, MapPin, AlertTriangle, Info, Loader2
+  Layers, Cpu, MapPin, AlertTriangle, Info, Loader2, Thermometer
 } from "lucide-react";
 
 // Fix Leaflet icons
@@ -17,7 +18,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const ADMIN_API = "http://localhost:5000/admin";
+const ADMIN_API = "/api/admin";
 
 const risqueFill = {
   faible:   { fill: "rgba(16, 185, 129, 0.1)", stroke: "#10b981", bg: "bg-emerald-300" },
@@ -51,10 +52,46 @@ function MapController({ defaultCenter }) {
   return null;
 }
 
+// Heatmap Layer Component
+function HeatmapLayer({ points, show }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (!show || points.length === 0) return;
+
+    // Create heatmap layer with temperature data
+    // Points format: [lat, lng, intensity]
+    const heatLayer = L.heatLayer(points, {
+      radius: 35,
+      blur: 25,
+      maxZoom: 15,
+      max: 100, // Max temperature for scaling
+      minOpacity: 0.4,
+      gradient: {
+        0.0: '#00f',    // Blue (cold)
+        0.2: '#0ff',    // Cyan
+        0.4: '#0f0',    // Green
+        0.6: '#ff0',    // Yellow
+        0.8: '#ffa500', // Orange
+        1.0: '#f00'     // Red (hot)
+      }
+    });
+
+    heatLayer.addTo(map);
+
+    return () => {
+      map.removeLayer(heatLayer);
+    };
+  }, [map, points, show]);
+
+  return null;
+}
+
 export default function AdminMap() {
   const [stats, setStats] = useState(null);
   const [mapData, setMapData] = useState({ zones: [], sensors: [] });
   const [loading, setLoading] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
@@ -74,9 +111,8 @@ export default function AdminMap() {
       
     } catch (err) {
       console.error("Error fetching map data", err);
-      // Fallback
       setStats({
-        totalCooperatives: 0, pendingApprovals: 0, activeSensors: 1, totalOwners: 0, activeAlerts: 2
+        totalCooperatives: 0, pendingApprovals: 0, activeSensors: 0, totalOwners: 0, activeAlerts: 0
       });
       setMapData({ zones: [], sensors: [] });
     } finally {
@@ -105,12 +141,22 @@ export default function AdminMap() {
     ? zonesWithPolygons[0].center
     : [30.38, -8.96];
 
+  // Prepare heatmap points from sensors with temperature data
+  // Format: [lat, lng, intensity]
+  const heatmapPoints = mapData.sensors
+    .filter(s => s.latest_reading && s.latest_reading.temperature_c)
+    .map(s => [
+      s.latitude,
+      s.longitude,
+      s.latest_reading.temperature_c // intensity based on temperature
+    ]);
+
   // The cards from the design
   const statCards = [
-    { label: "Forest Zones", value: mapData.zones.length || 5, icon: Layers, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
-    { label: "Total Sensors", value: mapData.sensors.length || 1, icon: Cpu, bg: "bg-blue-50", text: "text-blue-500", valText: "text-blue-700" },
-    { label: "Active Sensors", value: stats?.activeSensors || 1, icon: MapPin, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
-    { label: "Active Alerts", value: stats?.activeAlerts || 2, icon: AlertTriangle, bg: "bg-rose-50", text: "text-rose-500", valText: "text-rose-700" },
+    { label: "Forest Zones", value: mapData.zones.length, icon: Layers, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
+    { label: "Total Sensors", value: mapData.sensors.length, icon: Cpu, bg: "bg-blue-50", text: "text-blue-500", valText: "text-blue-700" },
+    { label: "Active Sensors", value: stats?.activeSensors || 0, icon: MapPin, bg: "bg-emerald-50", text: "text-emerald-500", valText: "text-emerald-700" },
+    { label: "Active Alerts", value: stats?.activeAlerts || 0, icon: AlertTriangle, bg: "bg-rose-50", text: "text-rose-500", valText: "text-rose-700" },
   ];
 
   return (
@@ -175,6 +221,21 @@ export default function AdminMap() {
           <div className="w-3.5 h-3.5 rounded-full bg-rose-400 ring-2 ring-rose-200 opacity-80"></div>
           <span>Active Alert</span>
         </div>
+
+        {/* Heatmap Toggle */}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+              showHeatmap 
+                ? "bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200" 
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            <Thermometer className="w-4 h-4" />
+            Heatmap {showHeatmap ? "ON" : "OFF"}
+          </button>
+        </div>
       </div>
 
       {/* Map Container */}
@@ -182,6 +243,9 @@ export default function AdminMap() {
         <MapContainer center={defaultMapCenter} zoom={10} className="w-full h-full z-0" zoomControl={true}>
           <MapController defaultCenter={defaultMapCenter} />
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+
+          {/* Temperature Heatmap Layer */}
+          <HeatmapLayer points={heatmapPoints} show={showHeatmap} />
 
           {zonesWithPolygons.map(z => {
             if (z.leafletCoords.length === 0) return null;
@@ -195,6 +259,11 @@ export default function AdminMap() {
                 <Popup className="rounded-xl">
                   <div className="font-bold text-slate-800 text-lg">{z.nom_zone}</div>
                   <div className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">{z.region}</div>
+                  {z.cooperative_name && (
+                    <div className="text-xs text-emerald-600 mt-1 font-semibold">
+                      {z.cooperative_name}
+                    </div>
+                  )}
                   <div className="mt-2 text-sm">
                     <span className="font-semibold">{z.superficie_ha}</span> ha covered.
                   </div>

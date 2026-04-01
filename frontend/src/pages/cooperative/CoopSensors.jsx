@@ -11,31 +11,42 @@ import {
   MapPin,
   Signal,
   Zap,
-  Settings,
   Droplets,
   Radio,
   Wind
 } from "lucide-react";
 
-function AdminSensors() {
+function CoopSensors() {
   const [sensors, setSensors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modal, setModal] = useState({ isOpen: false, type: null, sensor: null });
 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const coopId = user.cooperative_id;
+
   useEffect(() => {
-    loadSensors();
-  }, []);
+    if (coopId) {
+      loadSensors();
+    }
+  }, [coopId]);
 
   const loadSensors = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/sensors");
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/cooperative/${coopId}/sensors`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
       const data = await response.json();
-      setSensors(data);
+      setSensors(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading sensors:", error);
+      setSensors([]);
     }
     setLoading(false);
   };
@@ -82,34 +93,13 @@ function AdminSensors() {
     }
   };
 
-  const getConnConfig = (conn) => {
-    switch (conn) {
-      case "excellent": return { icon: Signal, color: "text-emerald-500", bars: 4 };
-      case "good": return { icon: Signal, color: "text-emerald-500", bars: 3 };
-      case "weak": return { icon: Signal, color: "text-amber-500", bars: 2 };
-      default: return { icon: Signal, color: "text-slate-400", bars: 1 };
-    }
-  };
-
   const handleConfirmAction = async () => {
     if (modal.type === "restart" && modal.sensor) {
       setSensors(sensors.map(s =>
         s.id === modal.sensor.id
-          ? { ...s, status: "active", connectivity: "excellent", battery: 100, lastPing: "Just now" }
+          ? { ...s, status: "ACTIF", connectivity: "excellent", lastPing: "Just now" }
           : s
       ));
-    } else if (modal.type === "add" && modal.sensor) {
-      try {
-        const response = await fetch("/api/sensors", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(modal.sensor),
-        });
-        const data = await response.json();
-        setSensors([...sensors, data]);
-      } catch (error) {
-        console.error("Error adding sensor:", error);
-      }
     }
     closeModal();
   };
@@ -123,13 +113,16 @@ function AdminSensors() {
   };
 
   const filteredSensors = sensors.filter((s) => {
-    const matchesSearch =
-      String(s.id).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.cooperative?.toLowerCase().includes(searchQuery.toLowerCase());
+    const sensorId = s.id_capteur || s.id || s.reference_serie || "";
+    const sensorLocation = s.zone_name || s.location || s.nom_zone || "";
     
-    const temp = s.temperature || 0;
-    const isWarning = temp > 45; // High temperature = fire risk warning
+    const matchesSearch =
+      String(sensorId).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(sensorLocation).toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Get temperature from latest_reading or direct field
+    const temp = s.latest_reading?.temperature_c || s.temperature_c || s.temperature || 0;
+    const isWarning = temp > 45;
     
     let matchesStatus = true;
     if (statusFilter === "all") {
@@ -143,11 +136,17 @@ function AdminSensors() {
     return matchesSearch && matchesStatus;
   });
 
-  // Stats based on temperature
+  // Stats based on temperature - check latest_reading first
   const stats = {
     total: sensors.length,
-    normal: sensors.filter(s => (s.temperature || 0) <= 45).length,
-    warning: sensors.filter(s => (s.temperature || 0) > 45).length,
+    normal: sensors.filter(s => {
+      const temp = s.latest_reading?.temperature_c || s.temperature_c || s.temperature || 0;
+      return temp <= 45;
+    }).length,
+    warning: sensors.filter(s => {
+      const temp = s.latest_reading?.temperature_c || s.temperature_c || s.temperature || 0;
+      return temp > 45;
+    }).length,
   };
 
   return (
@@ -268,12 +267,18 @@ function AdminSensors() {
         /* Grid View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredSensors.map(sensor => {
-            const statusConfig = getStatusConfig(sensor.status);
-            const temp = sensor.temperature || 0;
+            const sensorId = sensor.id_capteur || sensor.id || sensor.reference_serie || "Unknown";
+            const sensorLocation = sensor.zone_name || sensor.location || sensor.nom_zone || "Unknown";
+            const sensorStatus = sensor.statut || sensor.status || "ACTIF";
+            const statusConfig = getStatusConfig(sensorStatus);
+            const temp = sensor.temperature || sensor.latest_reading?.temperature_c || 0;
+            const humidity = sensor.humidity || sensor.latest_reading?.humidite_pct || 0;
+            const windSpeed = sensor.windSpeed || sensor.latest_reading?.wind_speed || 0;
+            const signalQuality = sensor.signalQuality || 100;
 
             return (
               <div 
-                key={sensor.id}
+                key={sensorId}
                 className="group relative bg-white rounded-2xl border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
               >
                 <div className="p-5">
@@ -284,8 +289,8 @@ function AdminSensors() {
                         <Cpu className={`w-5 h-5 ${statusConfig.text}`} />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">{sensor.cooperative || sensor.zoneName || "Unknown Coop"}</h3>
-                        <p className="text-slate-400 text-[10px] font-mono">{sensor.id}</p>
+                        <h3 className="font-bold text-slate-800 text-sm">{sensorLocation}</h3>
+                        <p className="text-slate-400 text-[10px] font-mono">{sensorId}</p>
                       </div>
                     </div>
                     <div className={`w-2.5 h-2.5 rounded-full ${statusConfig.dot}`}></div>
@@ -309,12 +314,12 @@ function AdminSensors() {
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-slate-50 rounded-xl p-3 text-center">
                       <Droplets className="w-4 h-4 text-blue-500 mx-auto mb-1" />
-                      <p className="text-lg font-black text-slate-700">{sensor.humidity || 0}%</p>
+                      <p className="text-lg font-black text-slate-700">{humidity}%</p>
                       <p className="text-[9px] text-slate-400 uppercase font-bold">Humidity</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3 text-center">
                       <Wind className="w-4 h-4 text-slate-500 mx-auto mb-1" />
-                      <p className="text-lg font-black text-slate-700">{sensor.windSpeed || 0}</p>
+                      <p className="text-lg font-black text-slate-700">{windSpeed}</p>
                       <p className="text-[9px] text-slate-400 uppercase font-bold">Wind km/h</p>
                     </div>
                   </div>
@@ -323,11 +328,11 @@ function AdminSensors() {
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs">
                       <Signal className="w-3.5 h-3.5" />
-                      <span>{sensor.signalQuality || 100}%</span>
+                      <span>{signalQuality}%</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-400 text-xs">
                       <MapPin className="w-3.5 h-3.5" />
-                      <span>{sensor.location}</span>
+                      <span>{sensorLocation}</span>
                     </div>
                   </div>
                 </div>
@@ -351,7 +356,6 @@ function AdminSensors() {
                 <h3 className="text-xl font-black text-white flex items-center gap-3">
                   {modal.type === "view" && <><Eye className="w-6 h-6" /> Sensor Details</>}
                   {modal.type === "restart" && <><RefreshCw className="w-6 h-6" /> Restart Sensor</>}
-                  {modal.type === "add" && <><Plus className="w-6 h-6" /> Add New Sensor</>}
                 </h3>
                 <button onClick={closeModal} className="p-2 hover:bg-white/20 rounded-xl transition-colors text-white">
                   <X className="w-5 h-5" />
@@ -364,13 +368,13 @@ function AdminSensors() {
               {modal.type === "view" && modal.sensor && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
-                    <div className={`w-14 h-14 rounded-xl ${getStatusConfig(modal.sensor.status).light} flex items-center justify-center`}>
-                      <Cpu className={`w-7 h-7 ${getStatusConfig(modal.sensor.status).text}`} />
+                    <div className={`w-14 h-14 rounded-xl ${getStatusConfig(modal.sensor.status || modal.sensor.statut).light} flex items-center justify-center`}>
+                      <Cpu className={`w-7 h-7 ${getStatusConfig(modal.sensor.status || modal.sensor.statut).text}`} />
                     </div>
                     <div>
-                      <h4 className="text-lg font-black text-slate-900 font-mono">{modal.sensor.id}</h4>
+                      <h4 className="text-lg font-black text-slate-900 font-mono">{modal.sensor.id_capteur || modal.sensor.id}</h4>
                       <p className="text-slate-500 text-sm flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {modal.sensor.location}
+                        <MapPin className="w-3 h-3" /> {modal.sensor.zone_name || modal.sensor.location}
                       </p>
                     </div>
                   </div>
@@ -378,19 +382,19 @@ function AdminSensors() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Status</p>
-                      <p className={`font-bold ${getStatusConfig(modal.sensor.status).text}`}>{getStatusConfig(modal.sensor.status).label}</p>
+                      <p className={`font-bold ${getStatusConfig(modal.sensor.status || modal.sensor.statut).text}`}>{getStatusConfig(modal.sensor.status || modal.sensor.statut).label}</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-xl">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Signal</p>
-                      <p className="font-bold text-slate-800">{modal.sensor.connectivity || "N/A"}</p>
+                      <p className="font-bold text-slate-800">{modal.sensor.connectivity || modal.sensor.signalQuality || "N/A"}</p>
                     </div>
                     <div className="bg-orange-50 p-4 rounded-xl">
                       <p className="text-[10px] uppercase font-bold text-orange-500 mb-1">Temperature</p>
-                      <p className="font-bold text-orange-600">{modal.sensor.temperature || "N/A"}°C</p>
+                      <p className="font-bold text-orange-600">{modal.sensor.temperature || modal.sensor.latest_reading?.temperature_c || "N/A"}°C</p>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-xl">
                       <p className="text-[10px] uppercase font-bold text-blue-500 mb-1">Humidity</p>
-                      <p className="font-bold text-blue-600">{modal.sensor.humidity || "N/A"}%</p>
+                      <p className="font-bold text-blue-600">{modal.sensor.humidity || modal.sensor.latest_reading?.humidite_pct || "N/A"}%</p>
                     </div>
                     <div className="bg-slate-50 p-4 rounded-xl col-span-2">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Wind Speed</p>
@@ -400,7 +404,7 @@ function AdminSensors() {
 
                   <div className="bg-slate-50 p-4 rounded-xl">
                     <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">GPS Coordinates</p>
-                    <p className="font-mono text-sm text-slate-800">{modal.sensor.coordinates || `${modal.sensor.latitude}, ${modal.sensor.longitude}`}</p>
+                    <p className="font-mono text-sm text-slate-800">{modal.sensor.coordinates || `${modal.sensor.latitude || "N/A"}, ${modal.sensor.longitude || "N/A"}`}</p>
                   </div>
                 </div>
               )}
@@ -411,71 +415,10 @@ function AdminSensors() {
                     <RefreshCw className="w-10 h-10 text-amber-600" />
                   </div>
                   <p className="text-slate-600 mb-2">Send remote restart signal to:</p>
-                  <p className="text-xl font-black text-slate-900 font-mono mb-4">{modal.sensor.id}</p>
+                  <p className="text-xl font-black text-slate-900 font-mono mb-4">{modal.sensor.id_capteur || modal.sensor.id}</p>
                   <div className="bg-amber-50 text-amber-700 p-4 rounded-xl text-sm font-medium border border-amber-100 text-left flex gap-3">
                     <AlertTriangle className="w-5 h-5 shrink-0" />
                     Sensor will be offline for 30-60 seconds during reboot.
-                  </div>
-                </div>
-              )}
-
-              {modal.type === "add" && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Serial Number</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
-                      placeholder="e.g. SN-ARG-999"
-                      value={modal.sensor?.id || ""}
-                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, id: e.target.value } })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Latitude</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
-                        placeholder="30.123"
-                        value={modal.sensor?.latitude || ""}
-                        onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, latitude: e.target.value } })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Longitude</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm"
-                        placeholder="-9.456"
-                        value={modal.sensor?.longitude || ""}
-                        onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, longitude: e.target.value } })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Location Name</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
-                      placeholder="e.g. North Ridge Sector A"
-                      value={modal.sensor?.location || ""}
-                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, location: e.target.value } })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sensor Type</label>
-                    <select
-                      className="w-full px-4 py-3 bg-slate-50 border-0 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm"
-                      value={modal.sensor?.type || ""}
-                      onChange={(e) => setModal({ ...modal, sensor: { ...modal.sensor, type: e.target.value } })}
-                    >
-                      <option value="">Select type...</option>
-                      <option value="MULTI">Multi-parameter</option>
-                      <option value="TEMPERATURE">Temperature</option>
-                      <option value="HUMIDITY">Humidity</option>
-                      <option value="WIND">Wind</option>
-                    </select>
                   </div>
                 </div>
               )}
@@ -491,11 +434,6 @@ function AdminSensors() {
                   Restart Now
                 </button>
               )}
-              {modal.type === "add" && (
-                <button onClick={handleConfirmAction} className="px-6 py-2.5 font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 rounded-xl shadow-lg shadow-emerald-200 transition-all">
-                  Add Sensor
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -504,4 +442,4 @@ function AdminSensors() {
   );
 }
 
-export default AdminSensors;
+export default CoopSensors;

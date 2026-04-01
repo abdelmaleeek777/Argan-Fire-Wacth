@@ -1,13 +1,23 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from app.utils.auth import cooperative_required
 
 alerts_bp = Blueprint("alerts", __name__)
 
-@alerts_bp.route("/api/cooperative/<int:coop_id>/alerts", methods=["GET"])
+@alerts_bp.route("/cooperative/<int:coop_id>/alerts", methods=["GET"])
+@cooperative_required
 def get_alerts(coop_id):
-
+    user = getattr(request, "current_user", None)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    # Ownership Check
+    cursor.execute("SELECT id_responsable FROM cooperatives WHERE id_cooperative = %s", (coop_id,))
+    coop_check = cursor.fetchone()
+    if not coop_check or coop_check["id_responsable"] != user["user_id"]:
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Forbidden"}), 403
 
     cursor.execute("""
         SELECT 
@@ -23,7 +33,7 @@ def get_alerts(coop_id):
         LEFT JOIN mesures m ON a.id_mesure = m.id_mesure
         LEFT JOIN capteurs c ON m.id_capteur = c.id_capteur
         WHERE a.id_zone IN (
-            SELECT id_zone FROM cooperatives WHERE id_cooperative = %s
+            SELECT id_zone FROM zones_forestieres WHERE id_cooperative = %s
         )
         ORDER BY a.date_creation DESC
     """, (coop_id,))

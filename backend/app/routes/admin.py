@@ -174,17 +174,36 @@ def get_cooperative_detail(coop_id):
         if cooperative.get("createdAt"):
             cooperative["createdAt"] = cooperative["createdAt"].isoformat()
 
-        # 2️⃣ Zones de cette coopérative
+        # 2️⃣ Zones de cette coopérative (avec coordonnées polygon)
         cursor.execute("""
             SELECT 
                 id_zone AS _id,
                 nom_zone AS name,
-                description
+                description,
+                superficie_ha,
+                ST_AsText(coordonnees_gps) AS polygon_wkt
             FROM zones_forestieres
             WHERE id_cooperative = %s
         """, (coop_id,))
 
         zones = cursor.fetchall()
+
+        # Convert superficie_ha to float and parse polygon coordinates
+        for z in zones:
+            if z.get("superficie_ha") is not None:
+                z["superficie_ha"] = float(z["superficie_ha"])
+            
+            # Parse WKT polygon to coordinate array
+            wkt = z.get("polygon_wkt", "")
+            coords = []
+            if wkt and "POLYGON" in wkt:
+                inner = wkt.replace("POLYGON((", "").replace("))", "")
+                for pair in inner.split(","):
+                    parts = pair.strip().split(" ")
+                    if len(parts) >= 2:
+                        coords.append([float(parts[0]), float(parts[1])])
+            z["coordinates"] = coords
+            del z["polygon_wkt"]  # Remove raw WKT from response
 
         # 3️⃣ Sensors dans ces zones
         cursor.execute("""
@@ -376,18 +395,484 @@ def get_admin_stats():
         "activeAlerts": alerts
     })
 
+
+# ===============================
+# DASHBOARD CHART DATA
+# ===============================
+@admin_bp.route("/charts/alerts-trend", methods=["GET"])
+def get_alerts_trend():
+    """Get alerts trend for the last 7 days"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            DATE(horodatage) AS date,
+            COUNT(*) AS total,
+            SUM(CASE WHEN statut IN ('OUVERTE', 'ACTIVE', 'EN_COURS') THEN 1 ELSE 0 END) AS active,
+            SUM(CASE WHEN statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolved
+        FROM alertes
+        WHERE horodatage >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(horodatage)
+        ORDER BY date ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    # Format for chart
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "name": r["date"].strftime("%a"),
+            "date": r["date"].isoformat(),
+            "alerts": r["active"] or 0,
+            "resolved": r["resolved"] or 0
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/zones-risk", methods=["GET"])
+def get_zones_risk():
+    """Get zones with their risk index"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            z.nom_zone AS name,
+            ROUND(z.indice_risque, 1) AS risk,
+            ROUND(z.superficie_ha, 0) AS area,
+            COUNT(c.id_capteur) AS sensors
+        FROM zones_forestieres z
+        LEFT JOIN capteurs c ON c.id_zone = z.id_zone
+        GROUP BY z.id_zone
+        ORDER BY z.indice_risque DESC
+        LIMIT 8
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return jsonify(results)
+
+
+@admin_bp.route("/charts/humidity-wind", methods=["GET"])
+def get_humidity_wind():
+    """Get average humidity and wind speed over last 24 hours"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            DATE_FORMAT(horodatage, '%H:00') AS hour,
+            ROUND(AVG(humidite_pct), 1) AS humidity,
+            ROUND(AVG(vitesse_vent_kmh), 1) AS wind
+        FROM mesures
+        WHERE horodatage >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        GROUP BY HOUR(horodatage)
+        ORDER BY HOUR(horodatage) ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return jsonify(results)
+
+
+@admin_bp.route("/charts/temperature-avg", methods=["GET"])
+def get_temperature_avg():
+    """Get average temperature readings over last 24 hours by hour"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            DATE_FORMAT(horodatage, '%H:00') AS hour,
+            ROUND(AVG(temperature_c), 1) AS avgTemp,
+            ROUND(AVG(humidite_pct), 1) AS avgHumidity,
+            ROUND(MAX(temperature_c), 1) AS maxTemp
+        FROM mesures
+        WHERE horodatage >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        GROUP BY HOUR(horodatage)
+        ORDER BY HOUR(horodatage) ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return jsonify(results)
+
+
+@admin_bp.route("/charts/alerts-by-severity", methods=["GET"])
+def get_alerts_by_severity():
+    """Get alert counts by severity level"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            niveau_alerte AS severity,
+            COUNT(*) AS count
+        FROM alertes
+        WHERE horodatage >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY niveau_alerte
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    # Map to friendly names
+    severity_map = {"CRITIQUE": "Critical", "HAUTE": "High", "MOYENNE": "Medium", "BASSE": "Low"}
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "name": severity_map.get(r["severity"], r["severity"]),
+            "value": r["count"],
+            "severity": r["severity"]
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/coops-status", methods=["GET"])
+def get_coops_status():
+    """Get cooperatives count by status"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            statut AS status,
+            COUNT(*) AS count
+        FROM cooperatives
+        GROUP BY statut
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    status_map = {"approved": "Approved", "pending": "Pending", "rejected": "Rejected"}
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "name": status_map.get(r["status"], r["status"]),
+            "value": r["count"],
+            "status": r["status"]
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/sensors-by-type", methods=["GET"])
+def get_sensors_by_type():
+    """Get sensors count by type"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            type_capteur AS type,
+            COUNT(*) AS count
+        FROM capteurs
+        GROUP BY type_capteur
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return jsonify(results)
+
+
+@admin_bp.route("/charts/measurements-daily", methods=["GET"])
+def get_measurements_daily():
+    """Get measurement counts per day for last 7 days"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            DATE(horodatage) AS date,
+            COUNT(*) AS count
+        FROM mesures
+        WHERE horodatage >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(horodatage)
+        ORDER BY date ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "name": r["date"].strftime("%a"),
+            "date": r["date"].isoformat(),
+            "measurements": r["count"]
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/alerts-daily", methods=["GET"])
+def get_alerts_daily():
+    """Get alerts per day for last 7 days"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT 
+            DATE(date_creation) AS date,
+            COUNT(*) AS total,
+            SUM(CASE WHEN niveau_gravite = 'CRITIQUE' THEN 1 ELSE 0 END) AS critical,
+            SUM(CASE WHEN niveau_gravite = 'ATTENTION' THEN 1 ELSE 0 END) AS warning,
+            SUM(CASE WHEN niveau_gravite = 'INFO' THEN 1 ELSE 0 END) AS info
+        FROM alertes
+        WHERE date_creation >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(date_creation)
+        ORDER BY date ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        chart_data.append({
+            "name": r["date"].strftime("%a"),
+            "date": r["date"].isoformat(),
+            "critical": int(r["critical"] or 0),
+            "warning": int(r["warning"] or 0),
+            "info": int(r["info"] or 0)
+        })
+    
+    return jsonify(chart_data)
+
+
+# ===============================
+# TIME-BASED CHART ENDPOINTS
+# ===============================
+@admin_bp.route("/charts/users-trend", methods=["GET"])
+def get_users_trend():
+    """Get users registered over time - supports duration parameter"""
+    duration = request.args.get('duration', '7d')  # 24h, 7d, 30d
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if duration == '24h':
+        interval = "INTERVAL 24 HOUR"
+        date_format = "%H:00"
+        group_by = "HOUR(date_creation)"
+    elif duration == '30d':
+        interval = "INTERVAL 30 DAY"
+        date_format = "%b %d"
+        group_by = "DATE(date_creation)"
+    else:  # 7d default
+        interval = "INTERVAL 7 DAY"
+        date_format = "%a"
+        group_by = "DATE(date_creation)"
+    
+    cursor.execute(f"""
+        SELECT 
+            DATE(date_creation) AS date,
+            {group_by} AS period,
+            COUNT(*) AS count
+        FROM utilisateurs
+        WHERE date_creation >= DATE_SUB(NOW(), {interval})
+        GROUP BY {group_by}, DATE(date_creation)
+        ORDER BY date_creation ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+        chart_data.append({
+            "name": label,
+            "users": r["count"]
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/coops-trend", methods=["GET"])
+def get_coops_trend():
+    """Get cooperatives by status over time"""
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if duration == '24h':
+        interval = "INTERVAL 24 HOUR"
+        date_format = "%H:00"
+        group_by = "HOUR(date_creation)"
+    elif duration == '30d':
+        interval = "INTERVAL 30 DAY"
+        date_format = "%b %d"
+        group_by = "DATE(date_creation)"
+    else:
+        interval = "INTERVAL 7 DAY"
+        date_format = "%a"
+        group_by = "DATE(date_creation)"
+    
+    cursor.execute(f"""
+        SELECT 
+            DATE(date_creation) AS date,
+            {group_by} AS period,
+            SUM(CASE WHEN statut = 'approved' THEN 1 ELSE 0 END) AS approved,
+            SUM(CASE WHEN statut = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN statut = 'rejected' THEN 1 ELSE 0 END) AS rejected
+        FROM cooperatives
+        WHERE date_creation >= DATE_SUB(NOW(), {interval})
+        GROUP BY {group_by}, DATE(date_creation)
+        ORDER BY date_creation ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+        chart_data.append({
+            "name": label,
+            "approved": int(r["approved"] or 0),
+            "pending": int(r["pending"] or 0),
+            "rejected": int(r["rejected"] or 0)
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/alerts-status-trend", methods=["GET"])
+def get_alerts_status_trend():
+    """Get alerts by status over time"""
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if duration == '24h':
+        interval = "INTERVAL 24 HOUR"
+        date_format = "%H:00"
+        group_by = "HOUR(horodatage)"
+    elif duration == '30d':
+        interval = "INTERVAL 30 DAY"
+        date_format = "%b %d"
+        group_by = "DATE(horodatage)"
+    else:
+        interval = "INTERVAL 7 DAY"
+        date_format = "%a"
+        group_by = "DATE(horodatage)"
+    
+    cursor.execute(f"""
+        SELECT 
+            DATE(horodatage) AS date,
+            {group_by} AS period,
+            SUM(CASE WHEN statut IN ('OUVERTE', 'ACTIVE') THEN 1 ELSE 0 END) AS active,
+            SUM(CASE WHEN statut = 'EN_COURS' THEN 1 ELSE 0 END) AS in_progress,
+            SUM(CASE WHEN statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolved
+        FROM alertes
+        WHERE horodatage >= DATE_SUB(NOW(), {interval})
+        GROUP BY {group_by}, DATE(horodatage)
+        ORDER BY horodatage ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+        chart_data.append({
+            "name": label,
+            "active": int(r["active"] or 0),
+            "inProgress": int(r["in_progress"] or 0),
+            "resolved": int(r["resolved"] or 0)
+        })
+    
+    return jsonify(chart_data)
+
+
+@admin_bp.route("/charts/sensors-trend", methods=["GET"])
+def get_sensors_trend():
+    """Get sensors created over time"""
+    duration = request.args.get('duration', '7d')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if duration == '24h':
+        interval = "INTERVAL 24 HOUR"
+        date_format = "%H:00"
+        group_by = "HOUR(date_installation)"
+    elif duration == '30d':
+        interval = "INTERVAL 30 DAY"
+        date_format = "%b %d"
+        group_by = "DATE(date_installation)"
+    else:
+        interval = "INTERVAL 7 DAY"
+        date_format = "%a"
+        group_by = "DATE(date_installation)"
+    
+    cursor.execute(f"""
+        SELECT 
+            DATE(date_installation) AS date,
+            {group_by} AS period,
+            COUNT(*) AS count
+        FROM capteurs
+        WHERE date_installation >= DATE_SUB(NOW(), {interval})
+        GROUP BY {group_by}, DATE(date_installation)
+        ORDER BY date_installation ASC
+    """)
+    
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    chart_data = []
+    for r in results:
+        label = r["date"].strftime(date_format) if r["date"] else str(r["period"])
+        chart_data.append({
+            "name": label,
+            "sensors": r["count"]
+        })
+    
+    return jsonify(chart_data)
+
+
 @admin_bp.route("/map_data", methods=["GET"])
 def get_map_data():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # 1. Zones
+        # 1. Zones - only from approved cooperatives
         cursor.execute("""
-            SELECT id_zone, nom_zone, region, superficie_ha,
-                   indice_risque, description,
-                   ST_AsText(coordonnees_gps) AS polygon_wkt
-            FROM zones_forestieres
+            SELECT z.id_zone, z.nom_zone, z.region, z.superficie_ha,
+                   z.indice_risque, z.description,
+                   ST_AsText(z.coordonnees_gps) AS polygon_wkt,
+                   c.nom_cooperative
+            FROM zones_forestieres z
+            INNER JOIN cooperatives c ON z.id_cooperative = c.id_cooperative
+            WHERE c.statut = 'approved'
         """)
         zone_rows = cursor.fetchall()
 
@@ -415,12 +900,16 @@ def get_map_data():
                 "superficie_ha": float(z["superficie_ha"]) if z["superficie_ha"] else 0,
                 "niveau_risque_base": risk_level,
                 "coordinates": coords,
+                "cooperative_name": z["nom_cooperative"],
             })
 
-        # 2. Sensors
+        # 2. Sensors - only from approved cooperatives zones
         cursor.execute("""
             SELECT c.id_capteur, c.reference_serie, c.latitude, c.longitude, c.statut, c.id_zone
             FROM capteurs c
+            INNER JOIN zones_forestieres z ON c.id_zone = z.id_zone
+            INNER JOIN cooperatives co ON z.id_cooperative = co.id_cooperative
+            WHERE co.statut = 'approved'
         """)
         sensor_rows = cursor.fetchall()
         sensors = []

@@ -26,7 +26,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "/api/auth/login",
         {
           email,
           password,
@@ -40,11 +40,13 @@ console.log("USER FROM BACKEND:", user);
         // Save user data to localStorage
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("role", user.role);
-        localStorage.setItem("token", "authenticated");
+        localStorage.setItem("token", data.token);
 
         // Redirect based on role and statut
         if (user.role === "ADMIN") {
           navigate("/admin/dashboard");
+        } else if (user.role === "POMPIER" || user.role === "FIREFIGHTER" || user.role === "CHEF_EQUIPE") {
+          navigate("/pompier/dashboard");
         } else if (user.statut === "approved") {
           navigate("/coop/dashboard");
         } else if (user.statut === "pending") {

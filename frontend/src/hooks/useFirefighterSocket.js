@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
-const URL = 'http://localhost:5000';
+const URL = window.location.origin;
 
 export const useFirefighterSocket = () => {
   const [socket, setSocket] = useState(null);

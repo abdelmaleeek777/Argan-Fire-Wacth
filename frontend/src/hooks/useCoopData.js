@@ -11,7 +11,7 @@ export const useCoopData = (initialData = {}) => {
   const saveCoopData = async (id) => {
     try {
       // id would normally be the ID obtained from auth or the successful registration
-      const response = await axios.put(`http://localhost:5000/api/cooperative/${id || 'me'}`, coopData);
+      const response = await axios.put(`/api/cooperative/${id || 'me'}`, coopData);
       return response.data;
     } catch (error) {
       throw error;
