@@ -31,33 +31,39 @@ def process_notifications():
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("""
-        SELECT *
-        FROM alertes_utilisateurs
-        WHERE envoye = 0
-        LIMIT 1
+        SELECT au.*, u.telephone, a.message, a.niveau_gravite, z.nom_zone
+        FROM alertes_utilisateurs au
+        JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
+        JOIN alertes a ON au.id_alerte = a.id_alerte
+        JOIN zones_forestieres z ON a.id_zone = z.id_zone
+        WHERE au.envoye = 0
     """)
 
-    notif = cursor.fetchone()
+    notifications = cursor.fetchall()
 
-    if notif:
-        print("✅ Notification trouvée")
+    if notifications:
+        for notif in notifications:
+            print(f"📨 Envoi à {notif['telephone']}...")
 
-        success = send_whatsapp("+212606436042", "test")
+            message = f"""🔥 CRITICAL FIRE ALERT
+Zone: {notif['nom_zone']}
+{notif['message']}
+Please intervene immediately!"""
 
-        if success:
-            cursor.execute("""
-                UPDATE alertes_utilisateurs
-                SET envoye = 1
-                WHERE id_alerte = %s AND id_utilisateur = %s
-            """, (notif["id_alerte"], notif["id_utilisateur"]))
+            success = send_whatsapp(notif["telephone"], message)
 
-            conn.commit()
-            print("✅ Marqué comme envoyé")
-        else:
-            print("❌ Échec envoi, pas de mise à jour")
-
+            if success:
+                cursor.execute("""
+                    UPDATE alertes_utilisateurs
+                    SET envoye = 1
+                    WHERE id_alerte = %s AND id_utilisateur = %s
+                """, (notif["id_alerte"], notif["id_utilisateur"]))
+                conn.commit()
+                print("✅ Marqué comme envoyé")
+            else:
+                print(f"❌ Échec pour {notif['telephone']}")
     else:
-        print("❌ Aucune notification")
+        print("❌ Aucune notification en attente")
 
     cursor.close()
     conn.close()
