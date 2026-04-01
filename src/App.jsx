@@ -29,8 +29,8 @@ import CoopProfile from "./pages/cooperative/CoopProfile";
 // Pompier
 import FirefighterLayout from "./components/pompier/FirefighterLayout";
 import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
-import FirefighterMap from "./pages/pompier/FirefighterMap";
-import FirefighterAlerts from "./pages/pompier/FirefighterAlerts";
+import FirefighterNotifications from "./pages/pompier/FirefighterNotifications";
+import FirefighterIncidents from "./pages/pompier/FirefighterIncidents";
 
 import "./App.css";
 
@@ -116,8 +116,8 @@ function App() {
         <Route path="/pompier" element={<FirefighterLayout />}>
           <Route index element={<Navigate to="/pompier/dashboard" replace />} />
           <Route path="dashboard" element={<FirefighterDashboard />} />
-          <Route path="map" element={<FirefighterMap />} />
-          <Route path="alerts" element={<FirefighterAlerts />} />
+          <Route path="notifications" element={<FirefighterNotifications />} />
+          <Route path="incidents" element={<FirefighterIncidents />} />
         </Route>
       </Routes>
     </div>
