@@ -1,7 +1,20 @@
 from app import create_app
 from flask_cors import CORS
+import threading
+import time
+from notification import process_notifications
+
 app = create_app()
 CORS(app)
 
+def notification_loop():
+    while True:
+        print("[INFO] Checking notifications...")
+        process_notifications()
+        time.sleep(10)  # toutes les 10 secondes
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # TODO: Fix notification loop - alertes_utilisateurs table missing 'envoye' column
+    # thread = threading.Thread(target=notification_loop, daemon=True)
+    # thread.start()
+    app.run(debug=False, port=5000)

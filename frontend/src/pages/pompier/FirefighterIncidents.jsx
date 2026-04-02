@@ -1,144 +1,138 @@
-import React, { useState, useContext } from 'react';
-import { Flame, ChevronDown, MapPin, Clock, AlertTriangle } from 'lucide-react';
-import { SocketContext } from '../../components/pompier/FirefighterLayout';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Flame, CheckCircle, Clock, Search, MapPin, Activity, Check } from 'lucide-react';
+import api from '../../utils/axiosInstance';
 
 export default function FirefighterIncidents() {
-  const { user } = useContext(SocketContext) || {};
-  const [expandedIncident, setExpandedIncident] = useState(null);
-  
-  const [incidents, setIncidents] = useState([
-    {
-      id: 1,
-      zoneName: 'North Forest Zone',
-      severity: 'urgence_maximale',
-      status: 'ACTIVE',
-      timestamp: '2 hours ago',
-      temperature: 850,
-      area: 150,
-      resources: ['Team Alpha', 'Team Bravo'],
-      description: 'Large fire spreading rapidly'
-    },
-    {
-      id: 2,
-      zoneName: 'South Argan Valley',
-      severity: 'alerte',
-      status: 'ACTIVE',
-      timestamp: '45 mins ago',
-      temperature: 520,
-      area: 45,
-      resources: ['Team Delta'],
-      description: 'Vegetation fire under control'
-    },
-  ]);
+  const [incidents, setIncidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const getSeverityBadge = (severity) => {
-    switch (severity) {
-      case 'urgence_maximale':
-        return 'bg-rose-100 text-rose-700';
-      case 'alerte':
-        return 'bg-orange-100 text-orange-700';
-      case 'vigilance':
-        return 'bg-amber-100 text-amber-700';
-      default:
-        return 'bg-slate-100 text-slate-700';
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+ const fetchIncidents = async () => {
+  try {
+    setLoading(true);
+
+    const res = await api.get('/incidents');
+
+    const formatted = res.data.map(i => ({
+      id: i.id_alerte,
+      zone: i.zone.nom_zone,
+      status: i.statut === "ACTIVE" ? "Active" : "Secured",
+      startDate: i.date_creation,
+      cause: i.type_alerte
+    }));
+
+    setIncidents(formatted);
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Active': return <span className="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1"><Flame size={12} className="animate-pulse"/> Active</span>;
+      case 'Secured': return <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1"><CheckCircle size={12}/> Secured</span>;
+      default: return null;
     }
   };
 
-  const toggleExpand = (id) => {
-    setExpandedIncident(expandedIncident === id ? null : id);
+  const handleFinishIntervention = async (id) => {
+    if (window.confirm("Are you sure you want to finish this intervention? The incident will be marked as secured.")) {
+      try {
+        setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'Secured', endDate: new Date().toISOString(), burntArea: 0 } : inc));
+        // await api.patch(`/api/incidents/${id}/finish`);
+      } catch(err) {
+        console.error(err);
+      }
+    }
   };
 
+  const filtered = incidents.filter(i => i.zone.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
-    <div className="p-6 md:p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-black text-slate-800">Active Incidents</h1>
-        <p className="text-slate-500 font-medium mt-1">Monitor and respond to ongoing incidents</p>
+    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto">
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+             <Flame className="text-orange-500" /> Incidents Tracker
+          </h1>
+          <p className="text-slate-500 font-medium">Monitor active fires and submit intervention completion.</p>
+        </div>
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input
+            type="text"
+            placeholder="Search by zone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium text-sm transition-all shadow-sm"
+          />
+        </div>
       </div>
 
-      <div className="grid gap-4">
-        {incidents.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-slate-100">
-            <Flame size={48} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-slate-400 font-medium">No active incidents</p>
-          </div>
-        ) : (
-          incidents.map(incident => (
-            <div
-              key={incident.id}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <div
-                onClick={() => toggleExpand(incident.id)}
-                className="p-6 cursor-pointer flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex items-start gap-4 flex-1">
-                  <div className="p-3 bg-rose-50 rounded-xl">
-                    <Flame size={24} className="text-rose-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg text-slate-800">{incident.zoneName}</h3>
-                    <div className="flex items-center gap-3 mt-2 flex-wrap">
-                      <span className={`text-xs font-black px-3 py-1 rounded-full ${getSeverityBadge(incident.severity)}`}>
-                        {incident.severity === 'urgence_maximale' ? 'EMERGENCY' : 'ALERT'}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                        <Clock size={14} /> {incident.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <ChevronDown
-                  size={20}
-                  className={`text-slate-400 transition-transform ${expandedIncident === incident.id ? 'rotate-180' : ''}`}
-                />
-              </div>
-
-              {expandedIncident === incident.id && (
-                <div className="border-t border-slate-100 p-6 bg-slate-50/50 space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">Temperature</p>
-                      <p className="text-2xl font-black text-slate-800 mt-1">{incident.temperature}°C</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">Area</p>
-                      <p className="text-2xl font-black text-slate-800 mt-1">{incident.area} ha</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-bold uppercase tracking-wide">Status</p>
-                      <p className="text-sm font-bold text-rose-600 mt-1">{incident.status}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-2">Description</p>
-                    <p className="text-slate-700 text-sm">{incident.description}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-2">Resources Deployed</p>
-                    <div className="flex flex-wrap gap-2">
-                      {incident.resources.map((resource, idx) => (
-                        <span key={idx} className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg text-sm font-semibold">
-                          {resource}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl transition-colors">
-                      Accept Mission
-                    </button>
-                    <button className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-xl transition-colors">
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        )}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">ID</th>
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Location</th>
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Date / Duration</th>
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Cause</th>
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+               {loading ? (
+                 <tr><td colSpan="6" className="p-8 text-center text-slate-400 animate-pulse font-bold">Loading database...</td></tr>
+               ) : filtered.length === 0 ? (
+                 <tr><td colSpan="6" className="p-8 text-center text-slate-400 font-bold border-dashed border-2 m-4">No incidents found in the database.</td></tr>
+               ) : filtered.map(inc => (
+                 <tr key={inc.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                    <td className="p-5 font-black text-slate-800">#{inc.id}</td>
+                    <td className="p-5 font-bold text-slate-700 flex items-center gap-2">
+                       <MapPin size={16} className="text-emerald-500" /> {inc.zone}
+                    </td>
+                    <td className="p-5">
+                       <span className="font-bold text-sm text-slate-600 block flex items-center gap-1">
+                         <Clock size={12}/> {new Date(inc.startDate).toLocaleDateString()}
+                       </span>
+                       {inc.endDate && (
+                         <span className="text-[10px] text-slate-400 font-bold block mt-1 uppercase">End: {new Date(inc.endDate).toLocaleDateString()}</span>
+                       )}
+                    </td>
+                    <td className="p-5 text-sm font-bold text-slate-500">{inc.cause}</td>
+                    <td className="p-5">
+                      {getStatusBadge(inc.status)}
+                    </td>
+                    <td className="p-5 text-right">
+                      {inc.status === 'Active' ? (
+                        <button 
+                          onClick={() => handleFinishIntervention(inc.id)}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 inline-flex items-center gap-2"
+                        >
+                          Finish Intervention
+                        </button>
+                      ) : (
+                        <button disabled className="bg-slate-100 text-slate-400 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-not-allowed inline-flex items-center gap-2">
+                          <Check size={14}/> Completed
+                        </button>
+                      )}
+                    </td>
+                 </tr>
+               ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

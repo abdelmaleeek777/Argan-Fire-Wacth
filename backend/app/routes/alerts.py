@@ -82,3 +82,11 @@ def get_alerts(coop_id):
         })
 
     return jsonify(formatted_alerts)
+
+
+
+#**************************************
+@alerts_bp.route("/api/alerts/<int:alert_id>/notify", methods=["POST"])
+def notify_alert(alert_id):
+    send_notifications_for_alert(alert_id)
+    return jsonify({"message": "Notifications sent"})

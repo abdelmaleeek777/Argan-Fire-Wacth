@@ -1,223 +1,260 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { motion } from 'framer-motion';
-import { Bell, Flame, Map as MapIcon, CircleDot, User, Phone } from 'lucide-react';
-import { MapContainer, TileLayer, CircleMarker, Polygon, Tooltip, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { useNavigate } from 'react-router-dom';
-import api from '../../utils/axiosInstance';
-import { SocketContext } from '../../components/pompier/FirefighterLayout';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ShieldAlert, Radio, UserCheck, Activity, Users, Flame,
+  AlertTriangle, XCircle, Building2
+} from 'lucide-react';
+import axios from 'axios';
+import useFirefighterSocket from '../../hooks/useFirefighterSocket';
+import IncidentNotificationModal from '../../components/pompier/IncidentNotificationModal';
 
-export default function FirefighterDashboard() {
-  const { user } = useContext(SocketContext) || {};
-  const [stats, setStats] = useState({
-    activeAlerts: 0,
-    activeIncidents: 0,
-  });
-  const [incidents, setIncidents] = useState([]);
-  const [firefighters, setFirefighters] = useState([]);
+export const FirefighterDashboard = () => {
+  const { 
+    incidents, firefighters, myStatus, updateStatus, 
+    isConnected, setInitialFirefighters, acceptMission, refuseMission 
+  } = useFirefighterSocket();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  
+  // States Locaux
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [recentMissions, setRecentMissions] = useState([]);
 
+  // Mock de l'utilisateur connecté (Chef d'équipe)
+  const currentUser = { id: 1, nom: 'El Idrissi', prenom: 'Karim', grade: 'Commander', equipe_id: 1 };
+
+  // Fetch initial des pompiers et des missions de l'équipe
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-        // Fallback mockup
-        const mockStats = { activeAlerts: 4, activeIncidents: 2 };
-        const mockIncidents = [
-          { id: 1, lat: 30.50, lng: -9.50, severity: 'urgence_maximale', zoneName: 'North Forest' },
-          { id: 2, lat: 30.40, lng: -9.60, severity: 'alerte', zoneName: 'South Argan Valley' }
-        ];
-        const mockFirefighters = [
-          { id: 101, name: 'Tarik S.', status: 'available', team: 'Alpha', phone: '06 12 34 56 78' },
-          { id: 102, name: 'Youssef B.', status: 'unavailable', team: 'Alpha', phone: '06 98 76 54 32' },
-          { id: 103, name: 'Karim L.', status: 'available', team: 'Bravo', phone: '06 11 22 33 44' },
-          { id: 104, name: 'Ali M.', status: 'available', team: 'Delta', phone: '06 99 88 77 66' }
-        ];
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        // Simuler des appels API si les vrais n'existent pas encore
+        try {
+          const resPompiers = await axios.get('/api/pompiers', { headers });
+          if (Array.isArray(resPompiers.data)) {
+            setInitialFirefighters(resPompiers.data);
+          } else {
+            throw new Error("Not an array");
+          }
+        } catch (e) {
+             console.warn("Utilisation de mock pour les pompiers", e);
+             setInitialFirefighters([
+                { id_pompier: 1, nom: 'El Idrissi', prenom: 'Karim', matricule: 'M-1023', grade: 'Lieutenant', telephone: '0661234567', specialite: 'Commandement', statut: 'disponible', equipe: 'Alpha' },
+                { id_pompier: 2, nom: 'Benali', prenom: 'Youssef', matricule: 'M-1045', grade: 'Capitaine', telephone: '0661234568', specialite: 'Aéroporté', statut: 'en_intervention', equipe: 'Bravo' },
+                { id_pompier: 3, nom: 'Touzani', prenom: 'Amine', matricule: 'M-1088', grade: 'Sapeur', telephone: '0661234569', specialite: 'Lutte terrain', statut: 'repos', equipe: 'Alpha' },
+             ]);
+        }
 
-        setTimeout(() => {
-          setStats(mockStats);
-          setIncidents(mockIncidents);
-          setFirefighters(mockFirefighters);
-          setLoading(false);
-        }, 800);
+        try {
+          const resMissions = await axios.get(`/api/equipes/${currentUser.equipe_id}/missions`, { headers });
+          if (Array.isArray(resMissions.data)) {
+            setRecentMissions(resMissions.data);
+          } else {
+            throw new Error("Not an array");
+          }
+        } catch (e) {
+          console.warn("Utilisation de mock pour les missions", e);
+          setRecentMissions([
+             { id: 101, zone: 'Amskroud Forest', temp: '54°C', statut: 'Completed', date: '2026-03-29', duree: '4h 30m' },
+             { id: 102, zone: 'Souss-Massa National Park', temp: '62°C', statut: 'In Progress', date: 'Today', duree: '1h 15m' },
+          ]);
+        }
+
       } catch (err) {
-        setError("Unable to load dashboard data.");
+        setError('Erreur lors du chargement des données.');
+        console.error(err);
+      } finally {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, []);
+  }, [setInitialFirefighters, currentUser.equipe_id]);
 
-  const getUrgencyColor = (severity) => {
-    switch (severity) {
-      case 'vigilance': return '#F59E0B'; // amber
-      case 'alerte': return '#F97316'; // orange
-      case 'urgence_maximale': return '#EF4444'; // red
-      default: return '#EF4444';
-    }
-  };
+  // Derived state (Stats)
+  const stats = useMemo(() => {
+    return {
+      disponibles: firefighters.filter(f => f.statut === 'disponible').length,
+      enIntervention: firefighters.filter(f => f.statut === 'en_intervention').length,
+      equipesDeployees: [...new Set(firefighters.filter(f => f.statut === 'en_intervention').map(f => f.equipe))].length,
+      incidentsActifs: incidents.length,
+      cooperatives: 24, // Mock: data placeholder
+      alertesAnnoncees: incidents.length + 3, // Mock: data placeholder
+    };
+  }, [firefighters, incidents]);
 
-  const statCards = [
-    { label: 'Active Alerts', count: stats.activeAlerts, icon: Bell, col: 'rose', pulse: stats.activeAlerts > 0 },
-    { label: 'Active Incidents', count: stats.activeIncidents, icon: Flame, col: 'orange' },
-    { label: 'Zones On Fire', count: incidents.length, icon: MapIcon, col: 'slate' }
-  ];
-
-  if (loading) {
-    return (
-      <div className="p-8 h-full flex flex-col gap-6 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1,2,3].map(i => <div key={i} className="h-32 bg-slate-200 rounded-3xl" />)}
-        </div>
-        <div className="h-[450px] bg-slate-200 rounded-3xl w-full" />
-      </div>
-    );
-  }
+  // State dependencies removed for filters since Team List is removed
 
   return (
-    <div className="p-6 md:p-8 space-y-8 font-sans">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-12">
       
-      {error && (
-        <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between text-rose-800 font-bold">
-          <span>{error}</span>
-          <button onClick={() => window.location.reload()} className="underline cursor-pointer">Retry</button>
-        </div>
+      {/* Header Modal - Incident Notification */}
+      {selectedIncident && (
+        <IncidentNotificationModal 
+          incident={selectedIncident} 
+          onClose={() => setSelectedIncident(null)}
+          onAccept={acceptMission}
+          onRefuse={refuseMission}
+        />
       )}
 
-      {/* Header */}
-      <div>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            Hi, {user ? `${user.rank} ${user.firstName}` : 'Firefighter'}
-          </h1>
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
-            <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Current Status</span>
-            <span className={`text-xs font-black px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-2 ${user?.status === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-              <CircleDot size={12} className={user?.status === 'available' ? 'animate-pulse' : ''} />
-              {user?.status === 'available' ? 'Available' : 'Unavailable'}
-            </span>
-          </div>
-        </div>
-        <p className="text-slate-500 font-medium mt-1">Here is the current situation on the ground.</p>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {statCards.map((c, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 relative overflow-hidden"
-          >
-            <div className={`absolute top-0 right-0 p-4 opacity-5 text-${c.col}-500`}>
-              <c.icon size={64} />
-            </div>
-            <div className={`w-12 h-12 rounded-2xl bg-${c.col}-50 text-${c.col}-500 flex items-center justify-center mb-4 relative z-10`}>
-              <c.icon size={24} strokeWidth={2.5} className={(c.pulse && c.count > 0) ? 'animate-pulse' : ''} />
-            </div>
-            <div className="relative z-10">
-              <span className="text-4xl font-black text-slate-800 block mb-1">{c.count}</span>
-              <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">{c.label}</span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-8 pt-6 pb-12 space-y-8">
         
-        {/* Map Section */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-xl font-black text-slate-800 tracking-tight">Zones containing active incidents</h2>
-          <div className="h-[450px] w-full bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-emerald-900/5 shadow-xl relative z-0">
-            <MapContainer 
-              center={[30.4278, -9.5981]} 
-              zoom={9} 
-              style={{ height: '100%', width: '100%' }}
-              zoomControl={false}
-            >
-              <TileLayer 
-                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://carto.com/">Carto</a>'
-              />
-              
-              {incidents.map(inc => (
-                <CircleMarker
-                  key={inc.id}
-                  center={[inc.lat, inc.lng]}
-                  radius={12}
-                  pathOptions={{ 
-                    color: getUrgencyColor(inc.severity), 
-                    fillColor: getUrgencyColor(inc.severity), 
-                    fillOpacity: 0.6 
-                  }}
-                >
-                  <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                    <span className="font-bold text-sm block">{inc.zoneName}</span>
-                  </Tooltip>
-                  <Popup>
-                    <div className="p-2 w-48 text-center text-sans text-sm">
-                      <Flame size={24} className="text-rose-500 mx-auto mb-2" />
-                      <p className="font-black text-slate-800 mb-1">{inc.zoneName}</p>
-                      <button 
-                        onClick={() => navigate(`/pompier/incidents`)}
-                        className="w-full mt-3 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 rounded-xl text-xs transition-colors"
-                      >
-                        View Incident Details
-                      </button>
-                    </div>
-                  </Popup>
-                </CircleMarker>
-              ))}
-
-              <Polygon positions={[
-                [30.5, -9.5], [30.6, -9.4], [30.5, -9.3]
-              ]} pathOptions={{ color: '#10B981', fillColor: '#10B981', fillOpacity: 0.2 }} />
-            </MapContainer>
+        {/* HEADER DASHBOARD */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Overview</h1>
+            <p className="text-slate-500 font-medium mt-1">Manage missions and monitor incidents in real-time.</p>
           </div>
-        </div>
 
-        {/* Firefighters Team Status */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Team Status</h2>
-            <span className="bg-emerald-100 text-emerald-700 font-black text-xs px-2 py-0.5 rounded-full">
-              {firefighters.filter(f => f.status === 'available').length} Available
+          {/* Connectivité Socket */}
+          <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <span className="relative flex h-3 w-3">
+              {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
             </span>
+            <span className="text-xs font-bold text-slate-700 tracking-wider uppercase">{isConnected ? 'Connected (Live)' : 'Offline'}</span>
           </div>
-          
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 h-[450px] overflow-y-auto space-y-3">
-            {firefighters.map(ff => (
-              <div key={ff.id} className="p-4 border border-slate-100 rounded-2xl flex items-center justify-between hover:border-slate-200 transition-colors">
-                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${ff.status === 'available' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                      <User size={18} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-sm">{ff.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Phone size={10} /> {ff.phone}
-                      </p>
-                    </div>
-                 </div>
-                 
-                 <div className="flex flex-col items-end gap-1">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${ff.status === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                      {ff.status === 'available' ? 'Available' : 'Busy'}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold">Team {ff.team}</span>
-                 </div>
+        </header>
+
+        {/* ERREUR BANNER */}
+        {error && (
+          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 flex items-center justify-between rounded-r-xl">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-rose-500 mr-2"/>
+              <p className="text-sm text-rose-700 font-bold">{error}</p>
+            </div>
+            <button onClick={() => setError(null)}><XCircle className="h-5 w-5 text-rose-400 hover:text-rose-600"/></button>
+          </div>
+        )}
+        
+        {/* SECTION 1 - STATS */}
+        <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
+          <StatCard title="Cooperatives" value={stats.cooperatives} icon={Building2} color="slate" />
+          <StatCard title="Total Alerts" value={stats.alertesAnnoncees} icon={ShieldAlert} color="rose" />
+          <StatCard title="Available Staff" value={stats.disponibles} icon={UserCheck} color="emerald" />
+          <StatCard title="Deployments" value={stats.enIntervention} icon={Radio} color="orange" />
+          <StatCard title="Active Incidents" value={stats.incidentsActifs} icon={Flame} color="rose" animatePulse={stats.incidentsActifs > 0} />
+          <StatCard title="Deployed Teams" value={stats.equipesDeployees} icon={Users} color="slate" />
+        </section>
+
+        {/* SECTION 2 - NOTIFICATIONS EN ATTENTE */}
+        <AnimatePresence>
+          {incidents.length > 0 && (
+            <motion.section 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm overflow-hidden"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <span className="relative flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500"></span>
+                </span>
+                <h2 className="text-xl font-black text-rose-900 tracking-tight">Incidents Awaiting Response</h2>
+                <span className="bg-rose-600 text-white px-2.5 py-0.5 rounded-full text-xs font-black">{incidents.length}</span>
               </div>
-            ))}
-          </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {incidents.map((incident) => (
+                  <motion.div 
+                    key={incident.id_alerte} 
+                    initial={{ scale: 0.95, opacity: 0 }} 
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-white rounded-2xl p-5 border shadow-sm border-rose-100 flex justify-between items-center"
+                  >
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-lg mb-1">{incident?.zone?.nom_zone || 'Unknown Zone'}</h4>
+                      <p className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded inline-block">Level: {incident?.niveau_urgence}</p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedIncident(incident)}
+                      className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 hover:-translate-y-0.5 transition-all"
+                    >
+                      View Details
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* SECTION 4 - MISSIONS RECENTES (Full width now since team list is removed) */}
+        <div className="grid grid-cols-1 gap-8">
+          
+          <section className="space-y-6">
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Recent Missions</h2>
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left border-collapse">
+                   <thead>
+                     <tr className="bg-slate-50 border-b border-slate-100">
+                       <th className="py-4 px-5 text-xs font-black text-slate-400 uppercase tracking-widest">Zone & Temp.</th>
+                       <th className="py-4 px-5 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                       <th className="py-4 px-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Date</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                      {recentMissions.map((mission, idx) => (
+                        <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                          <td className="py-4 px-5">
+                            <p className="font-bold text-slate-800 text-sm mb-0.5">{mission.zone}</p>
+                            <p className="text-xs text-rose-500 font-bold bg-rose-50 inline-block px-1.5 rounded">{mission.temp}</p>
+                          </td>
+                          <td className="py-4 px-5">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${mission.statut === 'Completed' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+                              {mission.statut}
+                            </span>
+                          </td>
+                          <td className="py-4 px-5 text-right">
+                             <p className="text-xs font-semibold text-slate-500">{mission.date}</p>
+                             <p className="text-[10px] text-slate-400 font-medium">{mission.duree}</p>
+                          </td>
+                        </tr>
+                      ))}
+                      {recentMissions.length === 0 && (
+                        <tr><td colSpan="3" className="py-8 text-center text-sm text-slate-400">No recent missions.</td></tr>
+                      )}
+                   </tbody>
+                 </table>
+               </div>
+            </div>
+          </section>
+
         </div>
-
-      </div>
-
+      </main>
     </div>
   );
-}
+};
+
+// Extrait Helper pour StatCard
+const colorMap = {
+  emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+  orange: { bg: 'bg-orange-50', text: 'text-orange-600' },
+  rose: { bg: 'bg-rose-50', text: 'text-rose-600' },
+  slate: { bg: 'bg-slate-50', text: 'text-slate-600' }
+};
+
+const StatCard = ({ title, value, icon: Icon, color, animatePulse }) => {
+  const tColor = colorMap[color] || colorMap.slate;
+  return (
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">{title}</h3>
+        <div className={`p-2 rounded-xl ${tColor.bg} ${tColor.text} ${animatePulse ? 'animate-pulse' : ''}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+      </div>
+      <p className={`text-4xl font-black text-slate-800 relative z-10 ${animatePulse ? tColor.text : ''}`}>{value}</p>
+      {/* Deco BG */}
+      <div className={`absolute -bottom-6 -right-6 w-24 h-24 ${tColor.bg} rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-0`}></div>
+    </div>
+  );
+};
+
+export default FirefighterDashboard;
