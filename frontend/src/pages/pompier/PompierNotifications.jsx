@@ -26,6 +26,7 @@ export default function PompierNotifications() {
     };
   }, [socket]);
 
+<<<<<<< HEAD
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -45,6 +46,31 @@ export default function PompierNotifications() {
       setLoading(false);
     }
   };
+=======
+const fetchNotifications = async () => {
+  try {
+    setLoading(true);
+
+    const res = await api.get('/notifications');
+
+const data = res.data.map(n => ({
+  ...n,
+  lue: Boolean(n.lue)
+}));
+
+setNotifications(data);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
+>>>>>>> 93c2a61c4bb69f46fdd10d7d601479ae42af3a34
 
   const markAsRead = async (id, e) => {
     if (e) e.stopPropagation();
@@ -85,11 +111,22 @@ export default function PompierNotifications() {
   };
 
   // Filtrage
+<<<<<<< HEAD
   const filtered = notifications.filter(n => {
     if (filtreSelected === 'Toutes') return true;
     if (filtreSelected === 'Non lues') return !n.lue;
     return n.type === filtreSelected;
   });
+=======
+const filtered = notifications.filter(n => {
+  if (filtreSelected === 'Toutes') return true;
+  if (filtreSelected === 'Non lues') return !n.lue;
+  if (filtreSelected === 'Alertes') return n.type === 'Alerte';
+  if (filtreSelected === 'Interventions') return n.type === 'Intervention';
+  if (filtreSelected === 'Système') return n.type === 'Système';
+  return true;
+});
+>>>>>>> 93c2a61c4bb69f46fdd10d7d601479ae42af3a34
 
   const counts = {
     'Toutes': notifications.length,
