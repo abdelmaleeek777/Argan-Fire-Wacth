@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Map as MapIcon,
   Maximize2,
+  KeyRound,
+  RefreshCw,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -59,6 +61,15 @@ const Register = () => {
   const [success, setSuccess] = useState(false);
   const [areaHectares, setAreaHectares] = useState(0);
 
+  // Email verification states
+  const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const codeInputRefs = useRef([]);
+
   const [formData, setFormData] = useState({
     prenom: "",
     nom: "",
@@ -74,14 +85,116 @@ const Register = () => {
     confirmCheck: false,
   });
 
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
+
+  const sendVerificationCode = async () => {
+    if (!formData.email) {
+      setError("Please enter your email address first");
+      return;
+    }
+    
+    setSendingCode(true);
+    setError("");
+    
+    try {
+      await axios.post("/api/auth/send-verification", { email: formData.email });
+      setCodeSent(true);
+      setResendTimer(60); // 60 seconds cooldown
+      setVerificationCode(["", "", "", "", "", ""]);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send verification code");
+    } finally {
+      setSendingCode(false);
+    }
+  };
+
+  const handleCodeChange = (index, value) => {
+    if (value.length > 1) {
+      // Handle paste
+      const pastedCode = value.slice(0, 6).split("");
+      const newCode = [...verificationCode];
+      pastedCode.forEach((char, i) => {
+        if (index + i < 6) {
+          newCode[index + i] = char;
+        }
+      });
+      setVerificationCode(newCode);
+      const nextIndex = Math.min(index + pastedCode.length, 5);
+      codeInputRefs.current[nextIndex]?.focus();
+    } else {
+      const newCode = [...verificationCode];
+      newCode[index] = value;
+      setVerificationCode(newCode);
+      
+      // Auto-focus next input
+      if (value && index < 5) {
+        codeInputRefs.current[index + 1]?.focus();
+      }
+    }
+  };
+
+  const handleCodeKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !verificationCode[index] && index > 0) {
+      codeInputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const verifyCode = async () => {
+    const code = verificationCode.join("");
+    if (code.length !== 6) {
+      setError("Please enter the complete 6-digit code");
+      return;
+    }
+
+    setVerifyingCode(true);
+    setError("");
+
+    try {
+      const response = await axios.post("/api/auth/verify-code", {
+        email: formData.email,
+        code: code,
+      });
+      
+      if (response.data.verified) {
+        setEmailVerified(true);
+        setStep(3); // Move to cooperative step
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Verification failed");
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
+
   const nextStep = () => {
     if (validateStep()) {
-      setStep((s) => s + 1);
+      if (step === 1) {
+        // After personal info, go to email verification
+        setStep(2);
+        if (!codeSent) {
+          sendVerificationCode();
+        }
+      } else {
+        setStep((s) => s + 1);
+      }
       setError("");
     }
   };
 
-  const prevStep = () => setStep((s) => s - 1);
+  const prevStep = () => {
+    if (step === 2) {
+      // Going back from verification resets verification state
+      setCodeSent(false);
+      setVerificationCode(["", "", "", "", "", ""]);
+    }
+    setStep((s) => s - 1);
+  };
 
   const validateStep = () => {
     if (step === 1) {
@@ -102,7 +215,7 @@ const Register = () => {
         setError("Passwords do not match");
         return false;
       }
-    } else if (step === 2) {
+    } else if (step === 3) {
       if (
         !formData.coopName ||
         !formData.region ||
@@ -112,7 +225,7 @@ const Register = () => {
         setError("Please fill in cooperative details");
         return false;
       }
-    } else if (step === 3) {
+    } else if (step === 4) {
       if (!formData.polygon) {
         setError("Please select your zone on the map");
         return false;
@@ -177,7 +290,7 @@ const Register = () => {
     return null;
   };
 
-  const stepNames = ["Identity", "Cooperative", "Zone Area", "Review"];
+  const stepNames = ["Identity", "Verify Email", "Cooperative", "Zone Area", "Review"];
 
   if (success) {
     return (
@@ -296,8 +409,89 @@ const Register = () => {
                 </div>
               )}
 
-              {/* Step 2: Cooperative Information */}
+              {/* Step 2: Email Verification */}
               {step === 2 && (
+                <div className="space-y-8">
+                  <header>
+                    <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
+                      Verify Your Email
+                    </h2>
+                    <p className="text-slate-500 text-sm">
+                      We've sent a 6-digit verification code to{" "}
+                      <span className="font-semibold text-emerald-600">{formData.email}</span>
+                    </p>
+                  </header>
+
+                  <div className="flex flex-col items-center space-y-8">
+                    {/* Code Input */}
+                    <div className="flex gap-3">
+                      {verificationCode.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (codeInputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={digit}
+                          onChange={(e) => handleCodeChange(index, e.target.value.replace(/\D/g, ""))}
+                          onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                          className="w-14 h-16 text-center text-2xl font-bold bg-slate-50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 transition-all"
+                        />
+                      ))}
+                    </div>
+
+                    {/* Verify Button */}
+                    <button
+                      onClick={verifyCode}
+                      disabled={verifyingCode || verificationCode.join("").length !== 6}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-black px-12 py-5 rounded-[1.5rem] flex items-center gap-3 transition-all shadow-xl shadow-emerald-900/10 active:scale-95"
+                    >
+                      {verifyingCode ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <>
+                          <KeyRound size={20} />
+                          Verify Code
+                        </>
+                      )}
+                    </button>
+
+                    {/* Resend Section */}
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-500">Didn't receive the code?</span>
+                      {resendTimer > 0 ? (
+                        <span className="text-slate-400 font-medium">
+                          Resend in {resendTimer}s
+                        </span>
+                      ) : (
+                        <button
+                          onClick={sendVerificationCode}
+                          disabled={sendingCode}
+                          className="text-emerald-600 font-bold hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                        >
+                          {sendingCode ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <RefreshCw size={14} />
+                          )}
+                          Resend Code
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Email verified badge */}
+                    {emailVerified && (
+                      <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full font-bold text-sm">
+                        <CheckCircle2 size={18} />
+                        Email Verified
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Cooperative Information */}
+              {step === 3 && (
                 <div className="space-y-8">
                   <header>
                     <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
@@ -355,8 +549,8 @@ const Register = () => {
                 </div>
               )}
 
-              {/* Step 3: Zone Selection */}
-              {step === 3 && (
+              {/* Step 4: Zone Selection */}
+              {step === 4 && (
                 <div className="space-y-8">
                   <header>
                     <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
@@ -425,8 +619,8 @@ const Register = () => {
                 </div>
               )}
 
-              {/* Step 4: Review & Submit */}
-              {step === 4 && (
+              {/* Step 5: Review & Submit */}
+              {step === 5 && (
                 <div className="space-y-10">
                   <header>
                     <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
@@ -448,7 +642,18 @@ const Register = () => {
                           label="Owner"
                           value={`${formData.prenom} ${formData.nom}`}
                         />
-                        <SummaryItem label="Email" value={formData.email} />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">
+                            Email
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-900 font-semibold">{formData.email}</span>
+                            <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                              <CheckCircle2 size={12} />
+                              Verified
+                            </span>
+                          </div>
+                        </div>
                         <SummaryItem
                           label="Cooperative"
                           value={formData.coopName}
@@ -521,7 +726,7 @@ const Register = () => {
 
               {/* Navigation Buttons */}
               <div className="mt-12 flex items-center justify-between gap-6 pt-10 border-t border-slate-100">
-                {step > 1 ? (
+                {step > 1 && step !== 2 ? (
                   <button
                     onClick={prevStep}
                     className="flex items-center gap-2 px-8 py-5 text-slate-400 font-bold hover:text-slate-900 transition-all group"
@@ -532,6 +737,17 @@ const Register = () => {
                     />
                     Back
                   </button>
+                ) : step === 2 ? (
+                  <button
+                    onClick={prevStep}
+                    className="flex items-center gap-2 px-8 py-5 text-slate-400 font-bold hover:text-slate-900 transition-all group"
+                  >
+                    <ArrowLeft
+                      size={20}
+                      className="group-hover:-translate-x-1 transition-transform"
+                    />
+                    Change Email
+                  </button>
                 ) : (
                   <Link
                     to="/login"
@@ -541,7 +757,10 @@ const Register = () => {
                   </Link>
                 )}
 
-                {step < 4 ? (
+                {step === 2 ? (
+                  // Step 2 has its own verify button, show nothing here
+                  <div></div>
+                ) : step < 5 ? (
                   <button
                     onClick={nextStep}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-12 py-5 rounded-[1.5rem] flex items-center gap-3 transition-all shadow-xl shadow-emerald-900/10 active:scale-95"
