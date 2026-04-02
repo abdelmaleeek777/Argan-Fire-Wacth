@@ -30,9 +30,11 @@ import CoopSensors from "./pages/cooperative/CoopSensors";
 // Pompier (Firefighter)
 import FirefighterLayout from "./components/pompier/FirefighterLayout";
 import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
-import FirefighterNotifications from "./pages/pompier/FirefighterNotifications";
+import PompierNotifications from "./pages/pompier/PompierNotifications";
 import FirefighterIncidents from "./pages/pompier/FirefighterIncidents";
-
+import FirefighterAlerts from "./pages/pompier/FirefighterAlerts";
+import FirefighterMap from "./pages/pompier/FirefighterMap";
+import FirefighterMission from "./pages/pompier/FirefighterMission";
 
 import "./App.css";
 
@@ -115,9 +117,8 @@ function App() {
           <Route path="map" element={<CoopMap />} />
         </Route>
 
-        {/* Pompier (Firefighter) Routes */}
-        <Route
-          path="/pompier"
+<Route 
+          path="/pompier" 
           element={
             <ProtectedRoute allowedRoles={["POMPIER", "FIREFIGHTER", "CHEF_EQUIPE"]}>
               <FirefighterLayout />
@@ -126,9 +127,13 @@ function App() {
         >
           <Route index element={<Navigate to="/pompier/dashboard" replace />} />
           <Route path="dashboard" element={<FirefighterDashboard />} />
-          <Route path="notifications" element={<FirefighterNotifications />} />
+          <Route path="alertes" element={<FirefighterAlerts />} />
+          <Route path="map" element={<FirefighterMap />} />
+          <Route path="mission" element={<FirefighterMission />} />
+          <Route path="notifications" element={<PompierNotifications />} />
           <Route path="incidents" element={<FirefighterIncidents />} />
         </Route>
+
       </Routes>
     </div>
   );

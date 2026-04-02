@@ -18,3 +18,19 @@
 .glass {
   @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-lg;
 }
+
+/* Leaflet Map Fixes */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.leaflet-pane {
+  z-index: 1;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 10;
+}
