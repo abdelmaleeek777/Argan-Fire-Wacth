@@ -5,7 +5,7 @@ from twilio.rest import Client
 # ===== TWILIO CONFIG =====
 ACCOUNT_SID = "ACdc8a9cdacad72a5f6e42436389a31ed7"
 
-AUTH_TOKEN = "d247a1b0ae21d0fd17b9963fe6e7703a"
+AUTH_TOKEN = "e361f2820c79a6723f67d139ff66a690"
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
