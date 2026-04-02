@@ -9,12 +9,11 @@ CORS(app)
 
 def notification_loop():
     while True:
-        print("[INFO] Checking notifications...")
+        print("🔄 Vérification notifications...")
         process_notifications()
         time.sleep(10)  # toutes les 10 secondes
 
 if __name__ == "__main__":
-    # TODO: Fix notification loop - alertes_utilisateurs table missing 'envoye' column
-    # thread = threading.Thread(target=notification_loop, daemon=True)
-    # thread.start()
+    thread = threading.Thread(target=notification_loop, daemon=True)
+    thread.start()
     app.run(debug=False, port=5000)

@@ -2,7 +2,9 @@ import os
 import time
 from app.config import get_db_connection
 from twilio.rest import Client
+from dotenv import load_dotenv
 
+load_dotenv()
 
 twilio_sid = os.getenv("SID")
 twilio_token = os.getenv("TOKEN")
@@ -10,6 +12,7 @@ twilio_token = os.getenv("TOKEN")
 client = Client(twilio_sid, twilio_token)
 
 WHATSAPP_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
 
 def send_whatsapp(phone, message):
     try:
@@ -29,40 +32,39 @@ def process_notifications():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT au.*, u.telephone, a.message, a.niveau_gravite, z.nom_zone
-        FROM alertes_utilisateurs au
-        JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
-        JOIN alertes a ON au.id_alerte = a.id_alerte
-        JOIN zones_forestieres z ON a.id_zone = z.id_zone
-        WHERE au.envoye = 0
-    """)
+    try:
+        # Check if 'envoye' column exists, if not use date_notification as filter
+        cursor.execute("""
+            SELECT au.id_alerte, au.id_utilisateur, au.date_notification,
+                   u.telephone, a.message, a.niveau_gravite, z.nom_zone
+            FROM alertes_utilisateurs au
+            JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
+            JOIN alertes a ON au.id_alerte = a.id_alerte
+            JOIN zones_forestieres z ON a.id_zone = z.id_zone
+            WHERE au.date_notification >= NOW() - INTERVAL 5 MINUTE
+        """)
 
-    notifications = cursor.fetchall()
+        notifications = cursor.fetchall()
 
-    if notifications:
-        for notif in notifications:
-            print(f"📨 Envoi à {notif['telephone']}...")
+        if notifications:
+            for notif in notifications:
+                print(f"📨 Envoi à {notif['telephone']}...")
 
-            message = f"""🔥 CRITICAL FIRE ALERT
+                message = f"""🔥 CRITICAL FIRE ALERT
 Zone: {notif['nom_zone']}
 {notif['message']}
 Please intervene immediately!"""
 
-            success = send_whatsapp(notif["telephone"], message)
+                success = send_whatsapp(notif["telephone"], message)
 
-            if success:
-                cursor.execute("""
-                    UPDATE alertes_utilisateurs
-                    SET envoye = 1
-                    WHERE id_alerte = %s AND id_utilisateur = %s
-                """, (notif["id_alerte"], notif["id_utilisateur"]))
-                conn.commit()
-                print("✅ Marqué comme envoyé")
-            else:
-                print(f"❌ Échec pour {notif['telephone']}")
-    else:
-        print("❌ Aucune notification en attente")
-
-    cursor.close()
-    conn.close()
+                if success:
+                    print("✅ Message envoyé")
+                else:
+                    print(f"❌ Échec pour {notif['telephone']}")
+        else:
+            print("❌ Aucune notification en attente")
+    except Exception as e:
+        print(f"❌ Notification error: {e}")
+    finally:
+        cursor.close()
+        conn.close()

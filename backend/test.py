@@ -1,13 +1,11 @@
-import os
-
 from twilio.rest import Client
 
-twilio_sid = os.getenv("SID")
-twilio_token = os.getenv("TOKEN")
+ACCOUNT_SID = "ACdc8a9cdacad72a5f6e42436389a31ed7"
+# AUTH_TOKEN = "d247a1b0ae21d0fd17b9963fe6e7703a"
+AUTH_TOKEN = "e361f2820c79a6723f67d139ff66a690"
+client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
-client = Client(twilio_sid, twilio_token)
-
-WHATSAPP_NUMBER = os.getenv("PHONE_NUMBER")
+WHATSAPP_NUMBER = "whatsapp:+14155238886"
 
 
 def send_whatsapp(phone, message):
@@ -24,4 +22,4 @@ def send_whatsapp(phone, message):
 
 # ✅ TEST DIRECT
 if __name__ == "__main__":
-    send_whatsapp("+212606436042", "🚀 Test WhatsApp réussi !")
+    send_whatsapp("+212627946380", "🚀 Test WhatsApp réussi !")

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -6,22 +6,53 @@ import {
   Menu,
   Bell,
   ShieldAlert,
-  Flame
+  Flame,
+  Map,
+  AlertTriangle
 } from "lucide-react";
+import api from "../../utils/axiosInstance";
 
 const FirefighterLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [activeAlerts, setActiveAlerts] = useState(0);
+  
+  // Get user from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userName = user.nom || user.prenom || 'Firefighter';
+  const userRole = user.role || 'POMPIER';
+  const initials = (user.prenom?.[0] || 'F') + (user.nom?.[0] || '');
+
+  // Fetch active alerts count
+  useEffect(() => {
+    const fetchActiveAlerts = async () => {
+      try {
+        const res = await api.get('/dashboard/pompier/stats');
+        setActiveAlerts(res.data.alertesActives || 0);
+      } catch (err) {
+        console.log('Could not fetch alerts count');
+      }
+    };
+    
+    fetchActiveAlerts();
+    const interval = setInterval(fetchActiveAlerts, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("pompierStatus");
+    localStorage.removeItem("currentMission");
     navigate("/login");
   };
 
   const navItems = [
     { name: "Dashboard", path: "/pompier/dashboard", icon: LayoutDashboard },
-    { name: "Notifications", path: "/pompier/notifications", icon: Bell },
+    { name: "Alerts", path: "/pompier/alertes", icon: AlertTriangle, badge: activeAlerts },
+    { name: "Map", path: "/pompier/map", icon: Map },
     { name: "Incidents", path: "/pompier/incidents", icon: ShieldAlert },
+    { name: "Notifications", path: "/pompier/notifications", icon: Bell },
   ];
 
   return (
@@ -38,7 +69,7 @@ const FirefighterLayout = () => {
                 Argan-Fire
               </span>
               <span className="text-xs font-semibold uppercase tracking-widest text-emerald-600 block">
-                Team Leader
+                Firefighter
               </span>
             </div>
           </Link>
@@ -52,16 +83,23 @@ const FirefighterLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${
+                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-bold ${
                   isActive
                     ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100"
                     : "text-slate-500 hover:bg-slate-50 hover:text-emerald-600 border border-transparent"
                 }`}
               >
-                <Icon
-                  className={`w-5 h-5 ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-emerald-500"}`}
-                />
-                {item.name}
+                <div className="flex items-center gap-3">
+                  <Icon
+                    className={`w-5 h-5 ${isActive ? "text-emerald-600" : "text-slate-400"}`}
+                  />
+                  {item.name}
+                </div>
+                {item.badge > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -86,12 +124,12 @@ const FirefighterLayout = () => {
             <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
               <Menu className="w-6 h-6" />
             </button>
-            <span className="font-bold text-slate-900">Team Leader Portal</span>
+            <span className="font-bold text-slate-900">Firefighter Portal</span>
           </div>
 
           <div className="hidden md:block">
             <h2 className="text-lg font-black text-slate-800 tracking-tight">
-              {navItems.find((item) => item.path === location.pathname)?.name || "Team Leader Space"}
+              {navItems.find((item) => item.path === location.pathname)?.name || "Firefighter Portal"}
             </h2>
           </div>
 
@@ -99,21 +137,21 @@ const FirefighterLayout = () => {
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-black text-slate-800 leading-none">
-                  El Idrissi
+                  {userName}
                 </p>
                 <p className="text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-widest">
-                  Commander
+                  {userRole}
                 </p>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-black shadow-md border-2 border-white">
-                EI
+                {initials}
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
           <Outlet />
         </main>
       </div>
