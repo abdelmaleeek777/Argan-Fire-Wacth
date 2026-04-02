@@ -5,10 +5,11 @@ import { MapContainer, TileLayer, CircleMarker, Polygon, Tooltip, Popup } from '
 import 'leaflet/dist/leaflet.css';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/axiosInstance';
-import { SocketContext } from '../../components/pompier/FirefighterLayout';
+
 
 export default function FirefighterDashboard() {
-  const { user } = useContext(SocketContext) || {};
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [userStatut, setUserStatut] = useState('INACTIF');
   const [stats, setStats] = useState({
     activeAlerts: 0,
     activeIncidents: 0,
@@ -19,35 +20,43 @@ export default function FirefighterDashboard() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fallback mockup
-        const mockStats = { activeAlerts: 4, activeIncidents: 2 };
-        const mockIncidents = [
-          { id: 1, lat: 30.50, lng: -9.50, severity: 'urgence_maximale', zoneName: 'North Forest' },
-          { id: 2, lat: 30.40, lng: -9.60, severity: 'alerte', zoneName: 'South Argan Valley' }
-        ];
-        const mockFirefighters = [
-          { id: 101, name: 'Tarik S.', status: 'available', team: 'Alpha', phone: '06 12 34 56 78' },
-          { id: 102, name: 'Youssef B.', status: 'unavailable', team: 'Alpha', phone: '06 98 76 54 32' },
-          { id: 103, name: 'Karim L.', status: 'available', team: 'Bravo', phone: '06 11 22 33 44' },
-          { id: 104, name: 'Ali M.', status: 'available', team: 'Delta', phone: '06 99 88 77 66' }
-        ];
+        const [resStats, resIncendies, resPompiers] = await Promise.all([
+          api.get('/dashboard/pompier/stats'),
+          api.get('/dashboard/pompier/incendies'),
+          api.get('/pompiers')
+        ]);
 
-        setTimeout(() => {
-          setStats(mockStats);
-          setIncidents(mockIncidents);
-          setFirefighters(mockFirefighters);
-          setLoading(false);
-        }, 800);
+        setStats({
+          activeAlerts: resStats.data.alertesActives,
+          activeIncidents: resStats.data.incendiesEnCours,
+          zonesSurveillees: resStats.data.zonesSurveillees,
+        });
+        setIncidents(resIncendies.data.map(inc => ({
+          id: inc.id_incendie,
+          lat: inc.lat,
+          lng: inc.lng,
+          severity: inc.niveau,
+          zoneName: inc.nom_zone
+        })));
+        setFirefighters(resPompiers.data.map(p => ({
+          id: p.id_pompier,
+          name: `${p.prenom} ${p.nom}`,
+          status: p.statut === 'ACTIF' ? 'available' : 'unavailable',
+          team: p.equipe || 'N/A',
+          phone: p.telephone
+        })));
+        const currentUser = resPompiers.data.find(p => p.id_pompier === user.id);
+setUserStatut(currentUser?.statut || 'INACTIF');
       } catch (err) {
         setError("Unable to load dashboard data.");
+      } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -63,7 +72,7 @@ export default function FirefighterDashboard() {
   const statCards = [
     { label: 'Active Alerts', count: stats.activeAlerts, icon: Bell, col: 'rose', pulse: stats.activeAlerts > 0 },
     { label: 'Active Incidents', count: stats.activeIncidents, icon: Flame, col: 'orange' },
-    { label: 'Zones On Fire', count: incidents.length, icon: MapIcon, col: 'slate' }
+    { label: 'Zones On Fire', count: stats.zonesSurveillees || 0, icon: MapIcon, col: 'slate' }
   ];
 
   if (loading) {
@@ -91,14 +100,14 @@ export default function FirefighterDashboard() {
       <div>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            Hi, {user ? `${user.rank} ${user.firstName}` : 'Firefighter'}
+            Hi, {user ? `${user.prenom} ${user.nom}` : 'Firefighter'}
           </h1>
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
             <span className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Current Status</span>
-            <span className={`text-xs font-black px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-2 ${user?.status === 'available' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-              <CircleDot size={12} className={user?.status === 'available' ? 'animate-pulse' : ''} />
-              {user?.status === 'available' ? 'Available' : 'Unavailable'}
-            </span>
+            <span className={`text-xs font-black px-2 py-0.5 rounded uppercase tracking-wide flex items-center gap-2 ${userStatut === 'ACTIF' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+  <CircleDot size={12} className={user?.userStatut === 'ACTIF' ? 'animate-pulse' : ''} />
+  {userStatut === 'ACTIF' ? 'Available' : 'Unavailable'}
+</span>
           </div>
         </div>
         <p className="text-slate-500 font-medium mt-1">Here is the current situation on the ground.</p>

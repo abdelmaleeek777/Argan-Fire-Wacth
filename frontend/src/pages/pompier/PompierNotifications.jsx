@@ -26,25 +26,29 @@ export default function PompierNotifications() {
     };
   }, [socket]);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      // Mock data
-      const mockNotifs = [
-        { id_notif: 1, type: 'Alerte', message: 'Nouvelle alerte détectée à Zone Nord: Température élevée.', lue: false, date: new Date().toISOString(), lier_alerte: 101 },
-        { id_notif: 2, type: 'Intervention', message: 'Mission #102 clôturée par Lieutenant Omar.', lue: false, date: new Date(Date.now() - 3600000).toISOString() },
-        { id_notif: 3, type: 'Système', message: 'Mise à jour du système de cartographie Leaflet effectuée avec succès.', lue: true, date: new Date(Date.now() - 172800000).toISOString() },
-        { id_notif: 4, type: 'Alerte', message: 'Capteur C-THW-002: Signal perdu (En panne).', lue: true, date: new Date(Date.now() - 432000000).toISOString() },
-      ];
-      setTimeout(() => {
-        setNotifications(mockNotifs);
-        setLoading(false);
-      }, 500);
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
-  };
+const fetchNotifications = async () => {
+  try {
+    setLoading(true);
+
+    const res = await api.get('/notifications');
+
+const data = res.data.map(n => ({
+  ...n,
+  lue: Boolean(n.lue)
+}));
+
+setNotifications(data);
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
 
   const markAsRead = async (id, e) => {
     if (e) e.stopPropagation();
@@ -85,11 +89,14 @@ export default function PompierNotifications() {
   };
 
   // Filtrage
-  const filtered = notifications.filter(n => {
-    if (filtreSelected === 'Toutes') return true;
-    if (filtreSelected === 'Non lues') return !n.lue;
-    return n.type === filtreSelected;
-  });
+const filtered = notifications.filter(n => {
+  if (filtreSelected === 'Toutes') return true;
+  if (filtreSelected === 'Non lues') return !n.lue;
+  if (filtreSelected === 'Alertes') return n.type === 'Alerte';
+  if (filtreSelected === 'Interventions') return n.type === 'Intervention';
+  if (filtreSelected === 'Système') return n.type === 'Système';
+  return true;
+});
 
   const counts = {
     'Toutes': notifications.length,

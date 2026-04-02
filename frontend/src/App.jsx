@@ -28,8 +28,10 @@ import MesZones from "./pages/cooperative/MesZones";
 import CoopSensors from "./pages/cooperative/CoopSensors";
 
 // Pompier (Firefighter)
+import FirefighterLayout from "./components/pompier/FirefighterLayout";
 import FirefighterDashboard from "./pages/pompier/FirefighterDashboard";
-
+import PompierNotifications from "./pages/pompier/PompierNotifications";
+import FirefighterIncidents from "./pages/pompier/FirefighterIncidents";
 
 import "./App.css";
 
@@ -112,19 +114,20 @@ function App() {
           <Route path="map" element={<CoopMap />} />
         </Route>
 
-        {/* Pompier (Firefighter) Routes */}
-        <Route 
-          path="/pompier/dashboard" 
+<Route 
+          path="/pompier" 
           element={
             <ProtectedRoute allowedRoles={["POMPIER", "FIREFIGHTER", "CHEF_EQUIPE"]}>
-              <FirefighterDashboard />
+              <FirefighterLayout />
             </ProtectedRoute>
           }
-        />
-        <Route 
-          path="/pompier" 
-          element={<Navigate to="/pompier/dashboard" replace />}
-        />
+        >
+          <Route index element={<Navigate to="/pompier/dashboard" replace />} />
+          <Route path="dashboard" element={<FirefighterDashboard />} />
+          <Route path="notifications" element={<PompierNotifications />} />
+          <Route path="incidents" element={<FirefighterIncidents />} />
+        </Route>
+
       </Routes>
     </div>
   );

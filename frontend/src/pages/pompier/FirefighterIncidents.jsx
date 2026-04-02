@@ -12,24 +12,28 @@ export default function FirefighterIncidents() {
     fetchIncidents();
   }, []);
 
-  const fetchIncidents = async () => {
-    try {
-      setLoading(true);
-      // MOCK DATA
-      const mockIncidents = [
-        { id: 1, zone: 'North Forest', startDate: new Date(Date.now() - 86400000).toISOString(), endDate: null, burntArea: null, status: 'Active', cause: 'Unknown' },
-        { id: 2, zone: 'Argan Valley', startDate: new Date(Date.now() - 172800000).toISOString(), endDate: null, burntArea: null, status: 'Active', cause: 'Thunderstorm' },
-        { id: 3, zone: 'South Zone', startDate: new Date(Date.now() - 432000000).toISOString(), endDate: new Date(Date.now() - 259200000).toISOString(), burntArea: 45.2, status: 'Secured', cause: 'Extreme Heat' }
-      ];
-      setTimeout(() => {
-        setIncidents(mockIncidents);
-        setLoading(false);
-      }, 500);
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-    }
-  };
+ const fetchIncidents = async () => {
+  try {
+    setLoading(true);
+
+    const res = await api.get('/incidents');
+
+    const formatted = res.data.map(i => ({
+      id: i.id_alerte,
+      zone: i.zone.nom_zone,
+      status: i.statut === "ACTIVE" ? "Active" : "Secured",
+      startDate: i.date_creation,
+      cause: i.type_alerte
+    }));
+
+    setIncidents(formatted);
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusBadge = (status) => {
     switch (status) {
