@@ -3,7 +3,7 @@ from app.config import get_db_connection
 from app.utils.auth import generate_token
 import hashlib
 import json
-
+from flask_jwt_extended import create_access_token
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -162,7 +162,7 @@ def login():
 
         # 🛡️ Generate real JWT
         token = generate_token(user_row["id_utilisateur"], user_row["role"])
-
+        token = create_access_token(identity=str(user["id_utilisateur"]))
         return {
             "message": "Login successful",
             "token": token,

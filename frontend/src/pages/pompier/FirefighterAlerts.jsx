@@ -15,13 +15,10 @@ export default function FirefighterAlerts() {
       setLoading(true);
       const token = localStorage.getItem("token");
       // Fallback/Mock for now, or use actual endpoint if defined later. E.g. we use /admin/alerts or /pompier/alerts
-<<<<<<< HEAD
-      const res = await axios.get("/api/admin/alerts", {
-=======
-      const res = await axios.get("http://localhost:5000/admin/alerts", {
->>>>>>> 0b553ddb89902885c925f502ab1b1d261d90b1c3
-        headers: { Authorization: `Bearer ${token}` }
-      });
+const res = await axios.get("http://127.0.0.1:5000/api/notifications", {
+  params: { user_id: userId },
+  headers: { Authorization: `Bearer ${token}` }
+});
       setAlerts(res.data);
     } catch (err) {
       console.error("Error fetching alerts", err);

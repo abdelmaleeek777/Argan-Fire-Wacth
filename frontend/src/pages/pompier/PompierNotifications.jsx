@@ -12,29 +12,37 @@ export default function PompierNotifications() {
   const [filtreSelected, setFiltreSelected] = useState('Toutes');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchNotifications();
+useEffect(() => {
+  if (!user?.id_utilisateur) return;
 
-    if (socket) {
-      socket.on('nouvelle_notification', (notif) => {
-        setNotifications((prev) => [notif, ...prev]);
-      });
-    }
+  fetchNotifications();
 
-    return () => {
-      if (socket) socket.off('nouvelle_notification');
-    };
-  }, [socket]);
+  if (socket) {
+    socket.on('nouvelle_notification', (notif) => {
+      setNotifications((prev) => [notif, ...prev]);
+    });
+  }
+
+  return () => {
+    if (socket) socket.off('nouvelle_notification');
+  };
+}, [socket, user]);
 
 const fetchNotifications = async () => {
   try {
     setLoading(true);
 
-    const res = await api.get('/notifications');
+    const res = await api.get('/notifications', {
+  params: { user_id: user?.id_utilisateur }
+});
 
 const data = res.data.map(n => ({
-  ...n,
-  lue: Boolean(n.lue)
+  id_notif: n.id_notif,
+  type: n.type === "Alert" ? "Alerte" : n.type,
+  message: n.message,
+  lue: Boolean(n.is_read),          
+  date: n.date,
+  lier_alerte: n.linked_alert       
 }));
 
 setNotifications(data);

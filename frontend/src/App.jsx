@@ -126,6 +126,7 @@ function App() {
           <Route path="dashboard" element={<FirefighterDashboard />} />
           <Route path="notifications" element={<PompierNotifications />} />
           <Route path="incidents" element={<FirefighterIncidents />} />
+          
         </Route>
 
       </Routes>

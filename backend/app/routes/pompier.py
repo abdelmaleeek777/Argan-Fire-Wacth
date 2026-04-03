@@ -1,6 +1,7 @@
 # app/routes/pompier.py
 from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 pompier_bp = Blueprint("pompier", __name__)
 
@@ -12,7 +13,17 @@ def get_dashboard_stats():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        cursor.execute("SELECT COUNT(*) AS count FROM alertes WHERE statut IN ('ACTIVE', 'OUVERTE')")
+        user_id = request.args.get("user_id")  # ou JWT plus tard
+
+        cursor.execute("""
+    SELECT COUNT(*) AS count
+    FROM alertes a
+    JOIN alertes_utilisateurs au ON a.id_alerte = au.id_alerte
+    WHERE 
+        au.id_utilisateur = %s
+        AND a.statut IN ('ACTIVE', 'OUVERTE')
+""", (user_id,))
+
         alertes_actives = cursor.fetchone()["count"]
 
         cursor.execute("SELECT COUNT(*) AS count FROM incendies WHERE statut_incendie != 'ETEINT'")
@@ -229,31 +240,48 @@ def update_statut_pompier(pompier_id):
 
 # ── GET /api/notifications ────────────────────────────────────
 @pompier_bp.route("/notifications", methods=["GET"])
+@jwt_required()  # ← protège la route
 def get_notifications():
+    user_id = get_jwt_identity() 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
+    
+    print(user_id)  
     try:
         cursor.execute("""
             SELECT 
                 a.id_alerte AS id_notif,
-                'Alerte' AS type,
-                CONCAT('Alerte détectée à ', z.nom_zone, ' (', a.niveau_gravite, ')') AS message,
-                FALSE AS lue,
-                a.date_creation AS date,
-                a.id_alerte AS lier_alerte
+                'Alert' AS type,
+                CONCAT(
+                    '🚨 Fire detected in ', 
+                    z.nom_zone, 
+                    ' | Severity: ', a.niveau_gravite,
+                    ' | Spread risk: ', a.probabilite_propagation, '%'
+                ) AS message,
+                au.envoye AS is_read,
+                au.date_notification AS date,
+                a.id_alerte AS linked_alert
             FROM alertes a
+            JOIN alertes_utilisateurs au ON a.id_alerte = au.id_alerte
+            JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
             JOIN zones_forestieres z ON a.id_zone = z.id_zone
-            WHERE a.statut IN ('ACTIVE', 'OUVERTE')
-            ORDER BY a.date_creation DESC
-        """)
+            WHERE 
+                u.id_utilisateur = %s
+                AND a.statut IN ('ACTIVE', 'OUVERTE')
+            ORDER BY au.date_notification DESC
+        """, (user_id,))
+
         rows = cursor.fetchall()
+
         for r in rows:
             if r["date"]:
                 r["date"] = r["date"].isoformat()
+
         return jsonify(rows), 200
 
     except Exception as e:
+        print("❌ ERROR notifications:", e)
         return jsonify({"error": str(e)}), 500
 
     finally:
