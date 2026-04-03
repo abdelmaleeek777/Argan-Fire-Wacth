@@ -52,7 +52,7 @@ const FirefighterLayout = () => {
     { name: "Alerts", path: "/pompier/alertes", icon: AlertTriangle, badge: activeAlerts },
     { name: "Map", path: "/pompier/map", icon: Map },
     { name: "Incidents", path: "/pompier/incidents", icon: ShieldAlert },
-    { name: "Notifications", path: "/pompier/notifications", icon: Bell },
+    
   ];
 
   return (

@@ -132,6 +132,7 @@ function App() {
           <Route path="mission" element={<FirefighterMission />} />
           <Route path="notifications" element={<PompierNotifications />} />
           <Route path="incidents" element={<FirefighterIncidents />} />
+          
         </Route>
 
       </Routes>

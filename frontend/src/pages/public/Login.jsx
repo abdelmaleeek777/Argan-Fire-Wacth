@@ -96,10 +96,10 @@ console.log("USER FROM BACKEND:", user);
               <ShieldCheck className="w-8 h-8 text-white" />
             </motion.div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-              Admin Portal
+              Welcome
             </h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
-              Argan-Fire Watch
+              Argan Fire Watch • Smart Monitoring
             </p>
           </div>
 
@@ -128,7 +128,7 @@ console.log("USER FROM BACKEND:", user);
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@arganfire.ma"
+                  placeholder="user@example.com"
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3.5 pl-11 pr-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-medium placeholder:text-slate-300"
                 />
               </div>
@@ -167,19 +167,19 @@ console.log("USER FROM BACKEND:", user);
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Sign In to Portal"
+                "Login"
               )}
             </button>
           </form>
 
           <div className="mt-8 pt-6 border-t border-slate-50 text-center relative z-10">
             <p className="text-slate-400 text-xs font-medium">
-              Cooperative owner?
+              Don't have an account?
               <Link
                 to="/register"
                 className="text-emerald-600 hover:text-emerald-700 font-extrabold ml-1.5 inline-flex items-center gap-1 group"
               >
-                Register
+                Sign Up
                 <ArrowRight
                   size={12}
                   className="group-hover:translate-x-0.5 transition-transform"
