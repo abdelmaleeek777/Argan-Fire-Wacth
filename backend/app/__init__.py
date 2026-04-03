@@ -1,39 +1,45 @@
-import os
-
-from flask import Flask
+from flask import Flask, request, make_response
 from flask_cors import CORS
 
-from .config import config_by_name
-
-
 def create_app():
-    """Application factory — creates and configures the Flask app."""
-    env = os.getenv("FLASK_ENV", "development")
-    app = Flask(__name__)
-    app.config.from_object(config_by_name[env])
 
-    # Enable CORS so the frontend can talk to this API
-    CORS(app)
+    app = Flask(__name__, template_folder="../../frontend/templates")
+    CORS(app, 
+         resources={r"/api/*": {"origins": "*"}}, 
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
-    # ------------------------------------------------------------------
-    # Register blueprints
-    # ------------------------------------------------------------------
-    from .routes.sensors import sensors_bp
-    from .routes.alerts import alerts_bp
-    from .routes.propagation import propagation_bp
-    from .routes.dashboard import dashboard_bp
-    from .routes.logs import logs_bp
+    app.secret_key = "arganfirewatch"
 
-    app.register_blueprint(sensors_bp, url_prefix="/sensors")
-    app.register_blueprint(alerts_bp, url_prefix="/alerts")
-    app.register_blueprint(propagation_bp, url_prefix="/propagation")
-    app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
-    app.register_blueprint(logs_bp, url_prefix="/logs")
+    # Global OPTIONS handler for CORS preflight
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = make_response()
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+            return response
 
-    # Root health-check
-    @app.route("/")
-    def index():
-        from flask import jsonify
-        return jsonify({"message": "Argan Fire Watch API is running"}), 200
 
+    from app.routes.auth_routes import auth_bp
+    from app.routes.mesures_routes import mesures_bp
+    from app.routes.admin import admin_bp
+    from app.routes.dashboard import dashboard_bp
+    from app.routes.sensors import sensors_bp
+    from app.routes.alerts import alerts_bp
+    from app.routes.zones import zones_bp
+    from app.routes.pompier import pompier_bp
+    from app.routes.cooperative_routes import coop_bp
+
+    app.register_blueprint(mesures_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(dashboard_bp, url_prefix='/api')
+    app.register_blueprint(sensors_bp, url_prefix='/api')
+    app.register_blueprint(alerts_bp, url_prefix='/api')
+    app.register_blueprint(zones_bp, url_prefix='/api')
+    app.register_blueprint(pompier_bp, url_prefix='/api')
+    app.register_blueprint(coop_bp, url_prefix='/api')
     return app

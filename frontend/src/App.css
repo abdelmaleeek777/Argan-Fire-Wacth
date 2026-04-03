@@ -1,9 +1,4 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+/* Custom styles for the Argan-Fire Watch app */
 
 .logo {
   height: 6em;
@@ -12,7 +7,7 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #10b981aa);
 }
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
