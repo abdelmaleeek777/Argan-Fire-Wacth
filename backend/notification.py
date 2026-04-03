@@ -1,15 +1,21 @@
+import os
 import time
 from app.config import get_db_connection
 from twilio.rest import Client
+from dotenv import load_dotenv
 
-# ===== TWILIO CONFIG =====
-ACCOUNT_SID = "ACdc8a9cdacad72a5f6e42436389a31ed7"
+load_dotenv()
 
-AUTH_TOKEN = "e361f2820c79a6723f67d139ff66a690"
+ACCOUNT_SID       = os.getenv("TWILIO_ACCOUNT_SID")
+AUTH_TOKEN        = os.getenv("TWILIO_AUTH_TOKEN")
+WHATSAPP_NUMBER   = os.getenv("TWILIO_WHATSAPP_NUMBER")
+
+# Validation au démarrage
+if not all([ACCOUNT_SID, AUTH_TOKEN, WHATSAPP_NUMBER]):
+    raise EnvironmentError("❌ Missing Twilio variables in .envn file")
 
 client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
-WHATSAPP_NUMBER = "whatsapp:+14155238886"
 
 
 def send_whatsapp(phone, message):
@@ -30,18 +36,29 @@ def process_notifications():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT au.*, u.telephone, a.message, a.niveau_gravite, z.nom_zone
-        FROM alertes_utilisateurs au
-        JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
-        JOIN alertes a ON au.id_alerte = a.id_alerte
-        JOIN zones_forestieres z ON a.id_zone = z.id_zone
-        WHERE au.envoye = 0
-    """)
+    try:
+        # ✅ Récupérer uniquement les notifications non envoyées (envoye = 0)
+        cursor.execute("""
+            SELECT 
+                au.id_alerte, 
+                au.id_utilisateur,
+                u.telephone, 
+                a.message, 
+                a.niveau_gravite, 
+                z.nom_zone
+            FROM alertes_utilisateurs au
+            JOIN utilisateurs u ON au.id_utilisateur = u.id_utilisateur
+            JOIN alertes a ON au.id_alerte = a.id_alerte
+            JOIN zones_forestieres z ON a.id_zone = z.id_zone
+            WHERE au.envoye = 0
+        """)
 
-    notifications = cursor.fetchall()
+        notifications = cursor.fetchall()
 
-    if notifications:
+        if not notifications:
+            print("✅ Aucune notification en attente")
+            return
+
         for notif in notifications:
             print(f"📨 Envoi à {notif['telephone']}...")
 
@@ -53,17 +70,20 @@ Please intervene immediately!"""
             success = send_whatsapp(notif["telephone"], message)
 
             if success:
+                # ✅ Marquer comme envoyé dans la DB
                 cursor.execute("""
-                    UPDATE alertes_utilisateurs
+                    UPDATE alertes_utilisateurs 
                     SET envoye = 1
                     WHERE id_alerte = %s AND id_utilisateur = %s
                 """, (notif["id_alerte"], notif["id_utilisateur"]))
                 conn.commit()
-                print("✅ Marqué comme envoyé")
+                print(f"✅ Message envoyé à {notif['telephone']} — marqué envoye=1")
             else:
-                print(f"❌ Échec pour {notif['telephone']}")
-    else:
-        print("❌ Aucune notification en attente")
+                print(f"❌ Échec pour {notif['telephone']} — envoye reste 0")
 
-    cursor.close()
-    conn.close()
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Notification error: {e}")
+    finally:
+        cursor.close()
+        conn.close()

@@ -1,27 +1,26 @@
-from flask import Flask, jsonify
+from flask import Flask, request, make_response
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+
 def create_app():
 
     app = Flask(__name__, template_folder="../../frontend/templates")
-    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    CORS(app, 
+         resources={r"/api/*": {"origins": "*"}}, 
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 
     app.secret_key = "arganfirewatch"
-    app.config["JWT_SECRET_KEY"] = "arganfirewatch"
-    jwt=JWTManager(app)
 
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-       return jsonify({"error": "Token expiré, veuillez vous reconnecter"}), 401
-
-    @jwt.invalid_token_loader
-    def invalid_token_callback(error):
-       return jsonify({"error": "Token invalide"}), 401
-
-    @jwt.unauthorized_loader
-    def missing_token_callback(error):
-       return jsonify({"error": "Token manquant"}), 401
-
+    # Global OPTIONS handler for CORS preflight
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = make_response()
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+            return response
 
 
     from app.routes.auth_routes import auth_bp

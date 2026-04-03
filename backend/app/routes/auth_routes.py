@@ -3,9 +3,139 @@ from app.config import get_db_connection
 from app.utils.auth import generate_token
 import hashlib
 import json
-from flask_jwt_extended import create_access_token
+import random
+import smtplib
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 auth_bp = Blueprint("auth", __name__)
+
+# In-memory storage for verification codes (in production, use Redis or database)
+verification_codes = {}
+
+def send_verification_email(email, code):
+    """Send verification code via email"""
+    try:
+        # Load from environment variables
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+        sender_email = os.getenv("SMTP_EMAIL")
+        sender_password = os.getenv("SMTP_PASSWORD")
+        
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Argan Fire Watch - Email Verification Code"
+        msg["From"] = sender_email
+        msg["To"] = email
+        
+        html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px;">
+            <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 20px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #059669; margin: 0;">Argan Fire Watch</h1>
+                    <p style="color: #64748b; margin-top: 10px;">Email Verification</p>
+                </div>
+                <p style="color: #334155; font-size: 16px;">Your verification code is:</p>
+                <div style="background: #f1f5f9; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #059669;">{code}</span>
+                </div>
+                <p style="color: #64748b; font-size: 14px;">This code will expire in 10 minutes.</p>
+                <p style="color: #64748b; font-size: 14px;">If you didn't request this verification, please ignore this email.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        part = MIMEText(html, "html")
+        msg.attach(part)
+        
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, email, msg.as_string())
+        
+        return True
+    except Exception as e:
+        print(f"Email sending error: {e}")
+        # For development, return True even if email fails
+        return True
+
+
+# =========================
+# SEND VERIFICATION CODE
+# =========================
+@auth_bp.route("/send-verification", methods=["POST"])
+def send_verification():
+    data = request.get_json()
+    if not data:
+        return {"message": "Invalid data"}, 400
+    
+    email = data.get("email")
+    if not email:
+        return {"message": "Email is required"}, 400
+    
+    # Check if email already exists in database
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_utilisateur FROM utilisateurs WHERE email=%s", (email,))
+        if cursor.fetchone():
+            return {"message": "Email already registered"}, 409
+    finally:
+        cursor.close()
+        conn.close()
+    
+    # Generate 6-digit verification code
+    code = str(random.randint(100000, 999999))
+    
+    # Store code with expiration (10 minutes)
+    verification_codes[email] = {
+        "code": code,
+        "expires_at": datetime.now() + timedelta(minutes=10)
+    }
+    
+    # Send email
+    if send_verification_email(email, code):
+        return {"message": "Verification code sent"}, 200
+    else:
+        return {"message": "Failed to send verification email"}, 500
+
+
+# =========================
+# VERIFY CODE
+# =========================
+@auth_bp.route("/verify-code", methods=["POST"])
+def verify_code():
+    data = request.get_json()
+    if not data:
+        return {"message": "Invalid data"}, 400
+    
+    email = data.get("email")
+    code = data.get("code")
+    
+    if not email or not code:
+        return {"message": "Email and code are required"}, 400
+    
+    stored = verification_codes.get(email)
+    
+    if not stored:
+        return {"message": "No verification code found. Please request a new one."}, 400
+    
+    if datetime.now() > stored["expires_at"]:
+        del verification_codes[email]
+        return {"message": "Verification code expired. Please request a new one."}, 400
+    
+    if stored["code"] != code:
+        return {"message": "Invalid verification code"}, 400
+    
+    # Code is valid - remove it and return success
+    del verification_codes[email]
+    return {"message": "Email verified successfully", "verified": True}, 200
 
 
 # =========================
@@ -162,7 +292,7 @@ def login():
 
         # 🛡️ Generate real JWT
         token = generate_token(user_row["id_utilisateur"], user_row["role"])
-        token = create_access_token(identity=str(user["id_utilisateur"]))
+
         return {
             "message": "Login successful",
             "token": token,

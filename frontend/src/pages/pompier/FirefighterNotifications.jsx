@@ -1,34 +1,20 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Flame, CheckCircle, XCircle, Search, Clock, Thermometer, Wind, X as XIcon, Crosshair } from 'lucide-react';
-import { SocketContext } from '../../components/pompier/FirefighterLayout';
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import api from '../../utils/axiosInstance';
 
 export default function FirefighterNotifications() {
-  const { socket, user } = useContext(SocketContext) || {};
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Drawer
   const [selectedAlert, setSelectedAlert] = useState(null);
 
   useEffect(() => {
     fetchAlerts();
-
-    if (socket) {
-      socket.on('new_notification', (alertObj) => {
-        new Audio('/alert-bip.mp3').play().catch(() => {});
-        // Prepend new alert
-        setAlerts((prev) => [alertObj, ...prev]);
-      });
-    }
-
-    return () => {
-      if (socket) socket.off('new_notification');
-    };
-  }, [socket]);
+  }, []);
 
   const fetchAlerts = async () => {
     try {
@@ -61,7 +47,6 @@ export default function FirefighterNotifications() {
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, status: 'taken' } : a));
       setSelectedAlert(null);
       // await api.patch(`/api/alerts/${id}`, { status: 'taken', firefighter_id: user?.id });
-      if (socket) socket.emit('alert_taken', { id, firefighter_id: user?.id });
     } catch (err) { console.error(err); }
   };
 
