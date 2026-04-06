@@ -10,7 +10,11 @@ from functools import wraps
 from flask import request, jsonify
 
 
-JWT_SECRET = os.getenv("JWT_SECRET_KEY", "jwt-default-secret")
+# Load JWT_SECRET from environment - NO defaults allowed
+JWT_SECRET = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET:
+    raise ValueError("❌ JWT_SECRET_KEY environment variable is required but not set")
+
 JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
 
@@ -83,5 +87,29 @@ def cooperative_required(f):
         user = getattr(request, "current_user", None)
         if not user or user.get("role") not in ["UTILISATEUR_COOP", "COOP", "COOPERATIVE"]:
             return jsonify({"error": "Unauthorized: Cooperative Owner access required"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def admin_required(f):
+    """Decorator — protect a route for ADMIN role only."""
+    @wraps(f)
+    @token_required
+    def decorated(*args, **kwargs):
+        user = getattr(request, "current_user", None)
+        if not user or user.get("role") != "ADMIN":
+            return jsonify({"error": "Unauthorized: Admin access required"}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def pompier_required(f):
+    """Decorator — protect a route for firefighter roles (POMPIER, CHEF_EQUIPE, ADMIN)."""
+    @wraps(f)
+    @token_required
+    def decorated(*args, **kwargs):
+        user = getattr(request, "current_user", None)
+        if not user or user.get("role") not in ["POMPIER", "CHEF_EQUIPE", "ADMIN"]:
+            return jsonify({"error": "Unauthorized: Firefighter access required"}), 403
         return f(*args, **kwargs)
     return decorated

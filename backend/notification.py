@@ -10,15 +10,20 @@ ACCOUNT_SID       = os.getenv("TWILIO_ACCOUNT_SID")
 AUTH_TOKEN        = os.getenv("TWILIO_AUTH_TOKEN")
 WHATSAPP_NUMBER   = os.getenv("TWILIO_WHATSAPP_NUMBER")
 
-# Validation au démarrage
-if not all([ACCOUNT_SID, AUTH_TOKEN, WHATSAPP_NUMBER]):
-    raise EnvironmentError("❌ Missing Twilio variables in .envn file")
-
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
+# Initialize Twilio client only if all credentials are present
+client = None
+if all([ACCOUNT_SID, AUTH_TOKEN, WHATSAPP_NUMBER]):
+    client = Client(ACCOUNT_SID, AUTH_TOKEN)
+    print("✅ Twilio client initialized")
+else:
+    print("⚠️  Twilio credentials not set - WhatsApp notifications disabled")
 
 
 
 def send_whatsapp(phone, message):
+    if not client:
+        print(f"⚠️  Twilio not configured - skipping WhatsApp to {phone}")
+        return False
     try:
         msg = client.messages.create(
             body=message,
