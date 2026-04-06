@@ -388,7 +388,10 @@ CREATE TABLE `logs_securite` (
   `nouvelle_valeur` json DEFAULT NULL,
   `adresse_ip` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `horodatage` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  `id_utilisateur` int UNSIGNED DEFAULT NULL
+  `id_utilisateur` int UNSIGNED DEFAULT NULL,
+  `prev_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `entry_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `hmac_signature` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -474,6 +477,55 @@ INSERT INTO `logs_securite` (`id_log`, `action`, `table_cible`, `id_enregistreme
 (76, 'UPDATE', 'utilisateurs', '15', '{\"nom\": \"Abdelmalek\", \"email\": \"abdelmalek@gmail.com\", \"prenom\": \"Hamda\", \"statut\": \"ACTIF\"}', '{\"nom\": \"Abdelmalek\", \"email\": \"abdelmalek@gmail.com\", \"prenom\": \"Hamda\", \"statut\": \"ACTIF\"}', NULL, '2026-04-02 21:48:39.341', NULL),
 (77, 'UPDATE', 'utilisateurs', '16', '{\"nom\": \"Pomp\", \"email\": \"Pomp@gmail.com\", \"prenom\": \"hhhh\", \"statut\": \"ACTIF\"}', '{\"nom\": \"Pomp\", \"email\": \"Pomp@gmail.com\", \"prenom\": \"hhhh\", \"statut\": \"ACTIF\"}', NULL, '2026-04-02 21:54:40.021', NULL),
 (78, 'UPDATE', 'utilisateurs', '16', '{\"nom\": \"Pomp\", \"email\": \"Pomp@gmail.com\", \"prenom\": \"hhhh\", \"statut\": \"ACTIF\"}', '{\"nom\": \"Pomp\", \"email\": \"Pomp@gmail.com\", \"prenom\": \"hhhh\", \"statut\": \"ACTIF\"}', NULL, '2026-04-03 11:33:56.197', NULL);
+
+--
+-- Triggers `logs_securite`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_logs_securite_integrite_insert` BEFORE INSERT ON `logs_securite` FOR EACH ROW BEGIN
+    DECLARE v_prev_hash VARCHAR(64);
+
+    SELECT entry_hash INTO v_prev_hash
+    FROM logs_securite
+    ORDER BY id_log DESC
+    LIMIT 1;
+
+    SET NEW.prev_hash = IFNULL(v_prev_hash, REPEAT('0', 64));
+    SET NEW.entry_hash = SHA2(
+        CONCAT(
+            IFNULL(NEW.action, ''),
+            IFNULL(NEW.table_cible, ''),
+            IFNULL(DATE_FORMAT(NEW.horodatage, '%Y-%m-%d %H:%i:%s.%f'), ''),
+            IFNULL(CAST(NEW.nouvelle_valeur AS CHAR), '')
+        ),
+        256
+    );
+
+    SET NEW.hmac_signature = SHA2(
+        CONCAT(
+            IFNULL(@log_hmac_secret, ''),
+            '|',
+            NEW.entry_hash,
+            '|',
+            NEW.prev_hash
+        ),
+        256
+    );
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_logs_securite_block_update` BEFORE UPDATE ON `logs_securite` FOR EACH ROW BEGIN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'UPDATE on logs_securite is forbidden';
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_logs_securite_block_delete` BEFORE DELETE ON `logs_securite` FOR EACH ROW BEGIN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELETE on logs_securite is forbidden';
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 

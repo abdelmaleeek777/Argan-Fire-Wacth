@@ -179,32 +179,38 @@ def delete_zone(coop_id, zone_id):
         # 1. Delete alertes_utilisateurs for alerts in this zone
         if alert_ids:
             alert_placeholders = ",".join(["%s"] * len(alert_ids))
-            cursor.execute(f"DELETE FROM alertes_utilisateurs WHERE id_alerte IN ({alert_placeholders})", alert_ids)
+            alert_delete_sql = "DELETE FROM alertes_utilisateurs WHERE id_alerte IN ({})".format(alert_placeholders)
+            cursor.execute(alert_delete_sql, alert_ids)
 
         if sensor_ids:
             placeholders = ",".join(["%s"] * len(sensor_ids))
             
             # Get all mesure IDs for these sensors
-            cursor.execute(f"SELECT id_mesure FROM mesures WHERE id_capteur IN ({placeholders})", sensor_ids)
+            mesures_sql = "SELECT id_mesure FROM mesures WHERE id_capteur IN ({})".format(placeholders)
+            cursor.execute(mesures_sql, sensor_ids)
             mesure_ids = [row["id_mesure"] for row in cursor.fetchall()]
             
             # 2. Delete alerts that reference these mesures (via id_mesure foreign key)
             if mesure_ids:
                 mesure_placeholders = ",".join(["%s"] * len(mesure_ids))
                 # First get alert IDs from mesures
-                cursor.execute(f"SELECT id_alerte FROM alertes WHERE id_mesure IN ({mesure_placeholders})", mesure_ids)
+                mesure_alerts_sql = "SELECT id_alerte FROM alertes WHERE id_mesure IN ({})".format(mesure_placeholders)
+                cursor.execute(mesure_alerts_sql, mesure_ids)
                 mesure_alert_ids = [row["id_alerte"] for row in cursor.fetchall()]
                 
                 # Delete alertes_utilisateurs for these alerts
                 if mesure_alert_ids:
                     ma_placeholders = ",".join(["%s"] * len(mesure_alert_ids))
-                    cursor.execute(f"DELETE FROM alertes_utilisateurs WHERE id_alerte IN ({ma_placeholders})", mesure_alert_ids)
+                    mesure_alert_delete_sql = "DELETE FROM alertes_utilisateurs WHERE id_alerte IN ({})".format(ma_placeholders)
+                    cursor.execute(mesure_alert_delete_sql, mesure_alert_ids)
                 
                 # Delete alerts referencing mesures
-                cursor.execute(f"DELETE FROM alertes WHERE id_mesure IN ({mesure_placeholders})", mesure_ids)
+                alerts_delete_sql = "DELETE FROM alertes WHERE id_mesure IN ({})".format(mesure_placeholders)
+                cursor.execute(alerts_delete_sql, mesure_ids)
             
             # 3. Delete measurements (mesures) for sensors in this zone
-            cursor.execute(f"DELETE FROM mesures WHERE id_capteur IN ({placeholders})", sensor_ids)
+            mesures_delete_sql = "DELETE FROM mesures WHERE id_capteur IN ({})".format(placeholders)
+            cursor.execute(mesures_delete_sql, sensor_ids)
 
         # 4. Delete sensors in this zone
         cursor.execute("DELETE FROM capteurs WHERE id_zone = %s", (zone_id,))

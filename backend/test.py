@@ -1,21 +1,7 @@
-<<<<<<< HEAD
-=======
 import os
->>>>>>> 9d68e17c4a608decdae4c67419c623286f47545d
 from twilio.rest import Client
 from dotenv import load_dotenv
 
-<<<<<<< HEAD
-ACCOUNT_SID = "ACdc8a9cdacad72a5f6e42436389a31ed7"
-# AUTH_TOKEN = "d247a1b0ae21d0fd17b9963fe6e7703a"
-AUTH_TOKEN = "e361f2820c79a6723f67d139ff66a690"
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
-
-WHATSAPP_NUMBER = "whatsapp:+14155238886"
-
-
-def send_whatsapp(phone, message):
-=======
 load_dotenv()
 
 ACCOUNT_SID       = os.getenv("TWILIO_ACCOUNT_SID")
@@ -34,7 +20,6 @@ def send_whatsapp(phone: str, message: str) -> bool:
     Envoie un message WhatsApp.
     Retourne True si succès, False sinon.
     """
->>>>>>> 9d68e17c4a608decdae4c67419c623286f47545d
     try:
         msg = client.messages.create(
             body=message,
