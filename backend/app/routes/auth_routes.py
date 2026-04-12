@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify, current_app
+from flask import Blueprint, request, render_template, redirect, url_for, session, jsonify
 from app.config import get_db_connection
 from app.utils.auth import generate_token
 import hashlib
@@ -71,12 +71,6 @@ def send_verification_email(email, code):
 # =========================
 @auth_bp.route("/send-verification", methods=["POST"])
 def send_verification():
-    # Rate limiting check
-    ip = request.remote_addr
-    allowed, _ = current_app.check_rate_limit(ip)
-    if not allowed:
-        return {"message": "Too many requests. Please try again later."}, 429
-    
     data = request.get_json()
     if not data:
         return {"message": "Invalid data"}, 400
@@ -117,12 +111,6 @@ def send_verification():
 # =========================
 @auth_bp.route("/verify-code", methods=["POST"])
 def verify_code():
-    # Rate limiting check
-    ip = request.remote_addr
-    allowed, _ = current_app.check_rate_limit(ip)
-    if not allowed:
-        return {"message": "Too many requests. Please try again later."}, 429
-    
     data = request.get_json()
     if not data:
         return {"message": "Invalid data"}, 400
@@ -242,12 +230,6 @@ def register():
 # =========================
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    # Rate limiting check
-    ip = request.remote_addr
-    allowed, _ = current_app.check_rate_limit(ip)
-    if not allowed:
-        return {"message": "Too many requests. Please try again later."}, 429
-    
     data = request.get_json()
     if not data:
         return {"message": "Invalid data"}, 400

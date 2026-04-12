@@ -142,7 +142,7 @@ export default function CoopDashboard() {
           <button onClick={() => { fetchStats(); fetchChartData(); }} className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all">
             <RefreshCcw className="w-4 h-4" />
           </button>
-          <Link to="/cooperative/map" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all">
+          <Link to="/coop/map" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all">
             <MapIcon className="w-4 h-4" /> Open Map
           </Link>
         </div>
