@@ -1,12 +1,14 @@
 # app/routes/pompier.py
 from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from app.utils.auth import pompier_required, token_required
 
 pompier_bp = Blueprint("pompier", __name__)
 
 
 # ── GET /api/dashboard/pompier/stats ─────────────────────────
 @pompier_bp.route("/dashboard/pompier/stats", methods=["GET", "OPTIONS"])
+@pompier_required
 def get_dashboard_stats():
     if request.method == "OPTIONS":
         return "", 200
@@ -71,6 +73,7 @@ def get_dashboard_stats():
 
 # ── GET /api/dashboard/pompier/incendies ─────────────────────
 @pompier_bp.route("/dashboard/pompier/incendies", methods=["GET", "OPTIONS"])
+@pompier_required
 def get_incendies_carte():
     if request.method == "OPTIONS":
         return "", 200
@@ -106,6 +109,7 @@ def get_incendies_carte():
 
 # ── GET /api/dashboard/pompier/alertes-critiques ─────────────
 @pompier_bp.route("/dashboard/pompier/alertes-critiques", methods=["GET", "OPTIONS"])
+@pompier_required
 def get_alertes_critiques():
     if request.method == "OPTIONS":
         return "", 200
@@ -281,6 +285,7 @@ def update_statut_pompier(pompier_id):
 
 # ── GET /api/notifications ────────────────────────────────────
 @pompier_bp.route("/notifications", methods=["GET", "OPTIONS"])
+@token_required
 def get_notifications():
     if request.method == "OPTIONS":
         return "", 200
@@ -309,7 +314,7 @@ def get_notifications():
         return jsonify(rows), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal error"}), 500
 
     finally:
         cursor.close()

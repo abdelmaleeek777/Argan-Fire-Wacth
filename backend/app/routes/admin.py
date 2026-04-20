@@ -2,6 +2,7 @@ import hashlib
 
 from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from app.utils.auth import admin_required
 from werkzeug.security import generate_password_hash
 
 admin_bp = Blueprint("admin", __name__)
@@ -12,6 +13,7 @@ admin_bp = Blueprint("admin", __name__)
 # ===============================
 # GET — toutes les demandes pending
 @admin_bp.route("/cooperatives/pending", methods=["GET"])
+@admin_required
 def get_pending():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -50,6 +52,7 @@ def get_pending():
 
 # PATCH — approuver
 @admin_bp.route("/cooperatives/<int:coop_id>/approve", methods=["PATCH"])
+@admin_required
 def approve_cooperative(coop_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -82,6 +85,7 @@ def approve_cooperative(coop_id):
 
 # PATCH — rejeter
 @admin_bp.route("/cooperatives/<int:coop_id>/reject", methods=["PATCH"])
+@admin_required
 def reject_cooperative(coop_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -112,6 +116,7 @@ def reject_cooperative(coop_id):
 
 
 @admin_bp.route("/cooperatives", methods=["GET"])
+@admin_required
 def get_all_cooperatives():
 
     conn = get_db_connection()
@@ -141,6 +146,7 @@ def get_all_cooperatives():
     return jsonify(cooperatives)
 
 @admin_bp.route("/cooperatives/<int:coop_id>", methods=["GET"])
+@admin_required
 def get_cooperative_detail(coop_id):
 
     conn = get_db_connection()
@@ -236,6 +242,7 @@ def get_cooperative_detail(coop_id):
 
 
 @admin_bp.route("/users", methods=["GET"])
+@admin_required
 def get_users():
 
     conn = get_db_connection()
@@ -279,6 +286,7 @@ def get_users():
 
 
 @admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@admin_required
 def delete_user(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -309,6 +317,7 @@ def delete_user(user_id):
         conn.close()
 
 @admin_bp.route("/users/<int:user_id>/block", methods=["PATCH"])
+@admin_required
 def block_user(user_id):
     data = request.get_json()
     action = data.get("action")  # "block" ou "unblock"
@@ -343,6 +352,7 @@ def block_user(user_id):
 
 
 @admin_bp.route("/stats", methods=["GET"])
+@admin_required
 def get_admin_stats():
 
     conn = get_db_connection()
@@ -400,6 +410,7 @@ def get_admin_stats():
 # DASHBOARD CHART DATA
 # ===============================
 @admin_bp.route("/charts/alerts-trend", methods=["GET"])
+@admin_required
 def get_alerts_trend():
     """Get alerts trend for the last 7 days"""
     conn = get_db_connection()
@@ -435,6 +446,7 @@ def get_alerts_trend():
 
 
 @admin_bp.route("/charts/zones-risk", methods=["GET"])
+@admin_required
 def get_zones_risk():
     """Get zones with their risk index"""
     conn = get_db_connection()
@@ -461,6 +473,7 @@ def get_zones_risk():
 
 
 @admin_bp.route("/charts/humidity-wind", methods=["GET"])
+@admin_required
 def get_humidity_wind():
     """Get average humidity and wind speed over last 24 hours"""
     conn = get_db_connection()
@@ -485,6 +498,7 @@ def get_humidity_wind():
 
 
 @admin_bp.route("/charts/temperature-avg", methods=["GET"])
+@admin_required
 def get_temperature_avg():
     """Get average temperature readings over last 24 hours by hour"""
     conn = get_db_connection()
@@ -510,6 +524,7 @@ def get_temperature_avg():
 
 
 @admin_bp.route("/charts/alerts-by-severity", methods=["GET"])
+@admin_required
 def get_alerts_by_severity():
     """Get alert counts by severity level"""
     conn = get_db_connection()
@@ -542,6 +557,7 @@ def get_alerts_by_severity():
 
 
 @admin_bp.route("/charts/coops-status", methods=["GET"])
+@admin_required
 def get_coops_status():
     """Get cooperatives count by status"""
     conn = get_db_connection()
@@ -572,6 +588,7 @@ def get_coops_status():
 
 
 @admin_bp.route("/charts/sensors-by-type", methods=["GET"])
+@admin_required
 def get_sensors_by_type():
     """Get sensors count by type"""
     conn = get_db_connection()
@@ -593,6 +610,7 @@ def get_sensors_by_type():
 
 
 @admin_bp.route("/charts/measurements-daily", methods=["GET"])
+@admin_required
 def get_measurements_daily():
     """Get measurement counts per day for last 7 days"""
     conn = get_db_connection()
@@ -624,6 +642,7 @@ def get_measurements_daily():
 
 
 @admin_bp.route("/charts/alerts-daily", methods=["GET"])
+@admin_required
 def get_alerts_daily():
     """Get alerts per day for last 7 days"""
     conn = get_db_connection()
@@ -663,6 +682,7 @@ def get_alerts_daily():
 # TIME-BASED CHART ENDPOINTS
 # ===============================
 @admin_bp.route("/charts/users-trend", methods=["GET"])
+@admin_required
 def get_users_trend():
     """Get users registered over time - supports duration parameter"""
     duration = request.args.get('duration', '7d')  # 24h, 7d, 30d
@@ -670,20 +690,14 @@ def get_users_trend():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    if duration == '24h':
-        interval = "INTERVAL 24 HOUR"
-        date_format = "%H:00"
-        group_by = "HOUR(date_creation)"
-    elif duration == '30d':
-        interval = "INTERVAL 30 DAY"
-        date_format = "%b %d"
-        group_by = "DATE(date_creation)"
-    else:  # 7d default
-        interval = "INTERVAL 7 DAY"
-        date_format = "%a"
-        group_by = "DATE(date_creation)"
-    
-    cursor.execute(f"""
+    allowed_durations = {
+        "24h": {"interval": "INTERVAL 24 HOUR", "date_format": "%H:00", "group_by": "HOUR(date_creation)"},
+        "7d": {"interval": "INTERVAL 7 DAY", "date_format": "%a", "group_by": "DATE(date_creation)"},
+        "30d": {"interval": "INTERVAL 30 DAY", "date_format": "%b %d", "group_by": "DATE(date_creation)"},
+    }
+    cfg = allowed_durations.get(duration, allowed_durations["7d"])
+    date_format = cfg["date_format"]
+    query = """
         SELECT 
             DATE(date_creation) AS date,
             {group_by} AS period,
@@ -692,7 +706,8 @@ def get_users_trend():
         WHERE date_creation >= DATE_SUB(NOW(), {interval})
         GROUP BY {group_by}, DATE(date_creation)
         ORDER BY date_creation ASC
-    """)
+    """.format(group_by=cfg["group_by"], interval=cfg["interval"])
+    cursor.execute(query)
     
     results = cursor.fetchall()
     cursor.close()
@@ -710,6 +725,7 @@ def get_users_trend():
 
 
 @admin_bp.route("/charts/coops-trend", methods=["GET"])
+@admin_required
 def get_coops_trend():
     """Get cooperatives by status over time"""
     duration = request.args.get('duration', '7d')
@@ -717,20 +733,14 @@ def get_coops_trend():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    if duration == '24h':
-        interval = "INTERVAL 24 HOUR"
-        date_format = "%H:00"
-        group_by = "HOUR(date_creation)"
-    elif duration == '30d':
-        interval = "INTERVAL 30 DAY"
-        date_format = "%b %d"
-        group_by = "DATE(date_creation)"
-    else:
-        interval = "INTERVAL 7 DAY"
-        date_format = "%a"
-        group_by = "DATE(date_creation)"
-    
-    cursor.execute(f"""
+    allowed_durations = {
+        "24h": {"interval": "INTERVAL 24 HOUR", "date_format": "%H:00", "group_by": "HOUR(date_creation)"},
+        "7d": {"interval": "INTERVAL 7 DAY", "date_format": "%a", "group_by": "DATE(date_creation)"},
+        "30d": {"interval": "INTERVAL 30 DAY", "date_format": "%b %d", "group_by": "DATE(date_creation)"},
+    }
+    cfg = allowed_durations.get(duration, allowed_durations["7d"])
+    date_format = cfg["date_format"]
+    query = """
         SELECT 
             DATE(date_creation) AS date,
             {group_by} AS period,
@@ -741,7 +751,8 @@ def get_coops_trend():
         WHERE date_creation >= DATE_SUB(NOW(), {interval})
         GROUP BY {group_by}, DATE(date_creation)
         ORDER BY date_creation ASC
-    """)
+    """.format(group_by=cfg["group_by"], interval=cfg["interval"])
+    cursor.execute(query)
     
     results = cursor.fetchall()
     cursor.close()
@@ -761,6 +772,7 @@ def get_coops_trend():
 
 
 @admin_bp.route("/charts/alerts-status-trend", methods=["GET"])
+@admin_required
 def get_alerts_status_trend():
     """Get alerts by status over time"""
     duration = request.args.get('duration', '7d')
@@ -768,20 +780,14 @@ def get_alerts_status_trend():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    if duration == '24h':
-        interval = "INTERVAL 24 HOUR"
-        date_format = "%H:00"
-        group_by = "HOUR(horodatage)"
-    elif duration == '30d':
-        interval = "INTERVAL 30 DAY"
-        date_format = "%b %d"
-        group_by = "DATE(horodatage)"
-    else:
-        interval = "INTERVAL 7 DAY"
-        date_format = "%a"
-        group_by = "DATE(horodatage)"
-    
-    cursor.execute(f"""
+    allowed_durations = {
+        "24h": {"interval": "INTERVAL 24 HOUR", "date_format": "%H:00", "group_by": "HOUR(horodatage)"},
+        "7d": {"interval": "INTERVAL 7 DAY", "date_format": "%a", "group_by": "DATE(horodatage)"},
+        "30d": {"interval": "INTERVAL 30 DAY", "date_format": "%b %d", "group_by": "DATE(horodatage)"},
+    }
+    cfg = allowed_durations.get(duration, allowed_durations["7d"])
+    date_format = cfg["date_format"]
+    query = """
         SELECT 
             DATE(horodatage) AS date,
             {group_by} AS period,
@@ -792,7 +798,8 @@ def get_alerts_status_trend():
         WHERE horodatage >= DATE_SUB(NOW(), {interval})
         GROUP BY {group_by}, DATE(horodatage)
         ORDER BY horodatage ASC
-    """)
+    """.format(group_by=cfg["group_by"], interval=cfg["interval"])
+    cursor.execute(query)
     
     results = cursor.fetchall()
     cursor.close()
@@ -812,6 +819,7 @@ def get_alerts_status_trend():
 
 
 @admin_bp.route("/charts/sensors-trend", methods=["GET"])
+@admin_required
 def get_sensors_trend():
     """Get sensors created over time"""
     duration = request.args.get('duration', '7d')
@@ -819,20 +827,14 @@ def get_sensors_trend():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    if duration == '24h':
-        interval = "INTERVAL 24 HOUR"
-        date_format = "%H:00"
-        group_by = "HOUR(date_installation)"
-    elif duration == '30d':
-        interval = "INTERVAL 30 DAY"
-        date_format = "%b %d"
-        group_by = "DATE(date_installation)"
-    else:
-        interval = "INTERVAL 7 DAY"
-        date_format = "%a"
-        group_by = "DATE(date_installation)"
-    
-    cursor.execute(f"""
+    allowed_durations = {
+        "24h": {"interval": "INTERVAL 24 HOUR", "date_format": "%H:00", "group_by": "HOUR(date_installation)"},
+        "7d": {"interval": "INTERVAL 7 DAY", "date_format": "%a", "group_by": "DATE(date_installation)"},
+        "30d": {"interval": "INTERVAL 30 DAY", "date_format": "%b %d", "group_by": "DATE(date_installation)"},
+    }
+    cfg = allowed_durations.get(duration, allowed_durations["7d"])
+    date_format = cfg["date_format"]
+    query = """
         SELECT 
             DATE(date_installation) AS date,
             {group_by} AS period,
@@ -841,7 +843,8 @@ def get_sensors_trend():
         WHERE date_installation >= DATE_SUB(NOW(), {interval})
         GROUP BY {group_by}, DATE(date_installation)
         ORDER BY date_installation ASC
-    """)
+    """.format(group_by=cfg["group_by"], interval=cfg["interval"])
+    cursor.execute(query)
     
     results = cursor.fetchall()
     cursor.close()
@@ -859,6 +862,7 @@ def get_sensors_trend():
 
 
 @admin_bp.route("/map_data", methods=["GET"])
+@admin_required
 def get_map_data():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -942,6 +946,7 @@ def get_map_data():
         conn.close()
 
 @admin_bp.route("/alerts", methods=["GET"])
+@admin_required
 def get_all_admin_alerts():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -982,37 +987,58 @@ def get_all_admin_alerts():
         conn.close()
 
 @admin_bp.route("/logs", methods=["GET"])
+@admin_required
 def get_admin_logs():
-    import hashlib
+    import os
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
-            SELECT id_alerte, type_alerte, statut, date_creation, message
-            FROM alertes
-            ORDER BY date_creation ASC
+            SELECT id_log, action, table_cible, nouvelle_valeur, horodatage, prev_hash, entry_hash, hmac_signature
+            FROM logs_securite
+            ORDER BY id_log ASC
             LIMIT 50
         """)
-        events = cursor.fetchall()
+        entries = cursor.fetchall()
         
         logs = []
-        prev_hash = "0000000000000000000000000000000000000000000000000000000000000000"
+        prev_hash = "0" * 64
+        hmac_secret = os.getenv("LOG_HMAC_SECRET", "")
         
-        for e in events:
-            raw_data = f"{e['id_alerte']}{e['type_alerte']}{e['statut']}{e['date_creation']}{prev_hash}"
-            current_hash = hashlib.sha256(raw_data.encode('utf-8')).hexdigest()
+        for e in entries:
+            raw_data = "{}{}{}{}".format(
+                e.get("action") or "",
+                e.get("table_cible") or "",
+                e.get("horodatage") or "",
+                e.get("nouvelle_valeur") or "",
+            )
+            recomputed_hash = hashlib.sha256(raw_data.encode("utf-8")).hexdigest()
+            recomputed_sig = hashlib.sha256(
+                "{}|{}|{}".format(
+                    hmac_secret,
+                    recomputed_hash,
+                    e.get("prev_hash") or "",
+                ).encode("utf-8")
+            ).hexdigest() if hmac_secret else None
+
+            chain_ok = (e.get("prev_hash") or "") == prev_hash
+            hash_ok = (e.get("entry_hash") or "") == recomputed_hash
+            sig_ok = True if not hmac_secret else (e.get("hmac_signature") or "") == recomputed_sig
+            integrity_ok = chain_ok and hash_ok and sig_ok
+
             logs.append({
-                "id": f"EVT-{e['id_alerte']}",
-                "event_type": "ALERT_" + str(e['type_alerte']).upper(),
-                "details": str(e['message']),
-                "timestamp": e['date_creation'].isoformat() if e['date_creation'] else None,
-                "hash": current_hash[:16] + "...",
-                "integrity": "Valid"
+                "id": "LOG-{}".format(e["id_log"]),
+                "event_type": str(e["action"]).upper(),
+                "details": str(e["table_cible"]),
+                "timestamp": e["horodatage"].isoformat() if e["horodatage"] else None,
+                "hash": (e.get("entry_hash") or "")[:16] + "...",
+                "integrity": "Valid" if integrity_ok else "Tampered"
             })
-            prev_hash = current_hash
+            prev_hash = e.get("entry_hash") or prev_hash
             
         logs.reverse() # Newest first
-        return jsonify({"logs": logs, "integrity_status": "100% Verified"}), 200
+        integrity_status = "100% Verified" if all(l["integrity"] == "Valid" for l in logs) else "Integrity check failed"
+        return jsonify({"logs": logs, "integrity_status": integrity_status}), 200
     except Exception as e:
         return jsonify({"message": str(e)}), 500
     finally:
@@ -1023,6 +1049,7 @@ def get_admin_logs():
 
 
 @admin_bp.route("/add", methods=["POST"])
+@admin_required
 def add_user():
     data = request.get_json()
     print("📥 Data received:", data)  # ← vérifier que le front envoie bien les données

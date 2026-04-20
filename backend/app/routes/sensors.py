@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
-from app.utils.auth import cooperative_required
+from app.utils.auth import cooperative_required, token_required, admin_required
 
 sensors_bp = Blueprint("sensors", __name__)
 
@@ -67,55 +67,114 @@ def get_cooperative_sensors(coop_id):
 
 
 @sensors_bp.route("/sensors", methods=["GET"])
+@token_required
 def get_sensors():
+    """Get all sensors. If cooperative role, only return their sensors."""
+    user = getattr(request, "current_user", None)
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT DISTINCT
-            c.id_capteur AS id,
-            c.reference_serie AS location,
-            CONCAT(c.latitude, ',', c.longitude) AS coordinates,
-            c.statut AS status,
-            c.modele AS model,
-            c.type_capteur AS type,
-            c.altitude_m AS altitude,
-            c.latitude,
-            c.longitude,
-            m.temperature_c AS temperature,
-            m.humidite_pct AS humidity,
-            m.vitesse_vent_kmh AS windSpeed,
-            m.qualite_signal AS signalQuality,
-            m.horodatage AS lastPing,
-            co.nom_cooperative AS cooperative,
-            z.nom_zone AS zoneName,
-            CASE
-                WHEN m.qualite_signal >= 80 THEN 'excellent'
-                WHEN m.qualite_signal >= 50 THEN 'good'
-                WHEN m.qualite_signal >= 20 THEN 'weak'
-                ELSE 'offline'
-            END AS connectivity
-        FROM capteurs c
-        LEFT JOIN zones_forestieres z ON c.id_zone = z.id_zone
-        LEFT JOIN cooperatives co ON z.id_cooperative = co.id_cooperative
-        LEFT JOIN mesures m ON m.id_capteur = c.id_capteur
-            AND m.id_mesure = (
-                SELECT m2.id_mesure
-                FROM mesures m2
-                WHERE m2.id_capteur = c.id_capteur
-                ORDER BY m2.horodatage DESC
-                LIMIT 1
-            )
-        ORDER BY co.nom_cooperative, c.reference_serie
-    """)
+    try:
+        # If cooperative user, filter to their sensors only
+        if user and user.get("role") in ["COOPERATIVE", "UTILISATEUR_COOP", "COOP"]:
+            # Get cooperative_id for this user
+            cursor.execute("""
+                SELECT c.id_cooperative FROM cooperatives c 
+                WHERE c.id_responsable = %s
+            """, (user.get("user_id"),))
+            coop_row = cursor.fetchone()
+            if not coop_row:
+                return jsonify([]), 200
+            
+            coop_id = coop_row["id_cooperative"]
+            
+            cursor.execute("""
+                SELECT DISTINCT
+                    c.id_capteur AS id,
+                    c.reference_serie AS location,
+                    CONCAT(c.latitude, ',', c.longitude) AS coordinates,
+                    c.statut AS status,
+                    c.modele AS model,
+                    c.type_capteur AS type,
+                    c.altitude_m AS altitude,
+                    c.latitude,
+                    c.longitude,
+                    m.temperature_c AS temperature,
+                    m.humidite_pct AS humidity,
+                    m.vitesse_vent_kmh AS windSpeed,
+                    m.qualite_signal AS signalQuality,
+                    m.horodatage AS lastPing,
+                    co.nom_cooperative AS cooperative,
+                    z.nom_zone AS zoneName,
+                    CASE
+                        WHEN m.qualite_signal >= 80 THEN 'excellent'
+                        WHEN m.qualite_signal >= 50 THEN 'good'
+                        WHEN m.qualite_signal >= 20 THEN 'weak'
+                        ELSE 'offline'
+                    END AS connectivity
+                FROM capteurs c
+                LEFT JOIN zones_forestieres z ON c.id_zone = z.id_zone
+                LEFT JOIN cooperatives co ON z.id_cooperative = co.id_cooperative
+                LEFT JOIN mesures m ON m.id_capteur = c.id_capteur
+                    AND m.id_mesure = (
+                        SELECT m2.id_mesure
+                        FROM mesures m2
+                        WHERE m2.id_capteur = c.id_capteur
+                        ORDER BY m2.horodatage DESC
+                        LIMIT 1
+                    )
+                WHERE z.id_cooperative = %s
+                ORDER BY co.nom_cooperative, c.reference_serie
+            """, (coop_id,))
+        else:
+            # Admin sees all
+            cursor.execute("""
+                SELECT DISTINCT
+                    c.id_capteur AS id,
+                    c.reference_serie AS location,
+                    CONCAT(c.latitude, ',', c.longitude) AS coordinates,
+                    c.statut AS status,
+                    c.modele AS model,
+                    c.type_capteur AS type,
+                    c.altitude_m AS altitude,
+                    c.latitude,
+                    c.longitude,
+                    m.temperature_c AS temperature,
+                    m.humidite_pct AS humidity,
+                    m.vitesse_vent_kmh AS windSpeed,
+                    m.qualite_signal AS signalQuality,
+                    m.horodatage AS lastPing,
+                    co.nom_cooperative AS cooperative,
+                    z.nom_zone AS zoneName,
+                    CASE
+                        WHEN m.qualite_signal >= 80 THEN 'excellent'
+                        WHEN m.qualite_signal >= 50 THEN 'good'
+                        WHEN m.qualite_signal >= 20 THEN 'weak'
+                        ELSE 'offline'
+                    END AS connectivity
+                FROM capteurs c
+                LEFT JOIN zones_forestieres z ON c.id_zone = z.id_zone
+                LEFT JOIN cooperatives co ON z.id_cooperative = co.id_cooperative
+                LEFT JOIN mesures m ON m.id_capteur = c.id_capteur
+                    AND m.id_mesure = (
+                        SELECT m2.id_mesure
+                        FROM mesures m2
+                        WHERE m2.id_capteur = c.id_capteur
+                        ORDER BY m2.horodatage DESC
+                        LIMIT 1
+                    )
+                ORDER BY co.nom_cooperative, c.reference_serie
+            """)
 
-    sensors = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        sensors = cursor.fetchall()
+        return jsonify(sensors), 200
+    finally:
+        cursor.close()
+        conn.close()
 
-    return jsonify(sensors)
 
 @sensors_bp.route("/sensors", methods=["POST"])
+@admin_required
 def add_sensor():
     data = request.get_json()
 

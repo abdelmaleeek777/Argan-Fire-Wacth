@@ -40,7 +40,10 @@ function AdminUsers() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const res = await axios.get("/api/admin/users");
+        const token = localStorage.getItem("token");
+        const res = await axios.get("/api/admin/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUsers(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         console.error(error);
@@ -90,9 +93,11 @@ function AdminUsers() {
 
     if (modal.type === "block" || modal.type === "unblock") {
       try {
+        const token = localStorage.getItem("token");
         await axios.patch(
           `/api/admin/users/${modal.user.id}/block`,
-          { action: modal.type }
+          { action: modal.type },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setUsers(users.map((u) =>
           u.id === modal.user.id
@@ -104,13 +109,17 @@ function AdminUsers() {
       }
     } else if (modal.type === "delete") {
       try {
-        await axios.delete(`/api/admin/users/${modal.user.id}`);
+        const token = localStorage.getItem("token");
+        await axios.delete(`/api/admin/users/${modal.user.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setUsers(users.filter((u) => u.id !== modal.user.id));
       } catch (error) {
         console.error("Error deleting user:", error);
       }
     } else if (modal.type === "add") {
       try {
+        const token = localStorage.getItem("token");
         const response = await axios.post("/api/admin/add", {
           nom: modal.user.nom,
           prenom: modal.user.prenom,
@@ -119,6 +128,8 @@ function AdminUsers() {
           telephone: modal.user.telephone,
           statut: modal.user.statut,
           role: modal.user.role, 
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
         const newUser = {
           ...response.data,

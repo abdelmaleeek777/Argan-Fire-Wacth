@@ -34,7 +34,13 @@ function AdminSensors() {
   const loadSensors = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/sensors");
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/sensors", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       setSensors(Array.isArray(data) ? data : []);
     } catch (error) {

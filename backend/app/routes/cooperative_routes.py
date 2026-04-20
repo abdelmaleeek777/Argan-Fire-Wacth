@@ -1,11 +1,39 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from app.config import get_db_connection
+from app.utils.auth import cooperative_required, admin_required
 
 coop_bp = Blueprint("cooperative", __name__)
 
+def _ensure_cooperative_owner(coop_id):
+    """Return (allowed, response, status) after ownership check."""
+    user = getattr(request, "current_user", None)
+    if not user:
+        return False, jsonify({"error": "Missing authentication context"}), 401
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT id_responsable FROM cooperatives WHERE id_cooperative = %s",
+            (coop_id,),
+        )
+        coop_check = cursor.fetchone()
+        if not coop_check or coop_check["id_responsable"] != user["user_id"]:
+            return False, jsonify({"error": "Unauthorized"}), 403
+        return True, None, None
+    finally:
+        cursor.close()
+        conn.close()
+
 
 @coop_bp.route("/cooperative/<int:coop_id>/dashboard", methods=["GET"])
+@cooperative_required
 def cooperative_dashboard(coop_id):
+    """Get cooperative dashboard - ownership check required."""
+    allowed, resp, status = _ensure_cooperative_owner(coop_id)
+    if not allowed:
+        return resp, status
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -154,13 +182,14 @@ def cooperative_dashboard(coop_id):
             sensor_ids = [s["id_capteur"] for s in sensors]
             if sensor_ids:
                 placeholders = ",".join(["%s"] * len(sensor_ids))
-                cursor.execute(f"""
+                query = """
                     SELECT MAX(temperature_c) AS max_temp,
                            MAX(horodatage) AS last_reading
                     FROM mesures
-                    WHERE id_capteur IN ({placeholders})
+                    WHERE id_capteur IN ({})
                       AND horodatage >= NOW() - INTERVAL 24 HOUR
-                """, tuple(sensor_ids))
+                """.format(placeholders)
+                cursor.execute(query, tuple(sensor_ids))
                 row = cursor.fetchone()
                 if row and row["max_temp"]:
                     temp_max = float(row["max_temp"])
@@ -224,16 +253,17 @@ def cooperative_dashboard(coop_id):
             sensor_ids = [s["id_capteur"] for s in sensors]
             if sensor_ids:
                 placeholders = ",".join(["%s"] * len(sensor_ids))
-                cursor.execute(f"""
+                query = """
                     SELECT DATE_FORMAT(horodatage, '%%H:00') AS time_label,
                            ROUND(AVG(temperature_c), 1) AS temp,
                            ROUND(AVG(humidite_pct), 1) AS hum
                     FROM mesures
-                    WHERE id_capteur IN ({placeholders})
+                    WHERE id_capteur IN ({})
                       AND horodatage >= NOW() - INTERVAL 24 HOUR
                     GROUP BY time_label
                     ORDER BY MIN(horodatage)
-                """, tuple(sensor_ids))
+                """.format(placeholders)
+                cursor.execute(query, tuple(sensor_ids))
                 temperature_history = []
                 for row in cursor.fetchall():
                     temperature_history.append({
@@ -265,9 +295,13 @@ def cooperative_dashboard(coop_id):
 # COOPERATIVE CHART ENDPOINTS
 # ===============================
 @coop_bp.route("/cooperative/<int:coop_id>/charts/temperature", methods=["GET"])
+@cooperative_required
 def get_cooperative_temperature_chart(coop_id):
-    """Get temperature data for cooperative charts"""
-    from flask import request
+    """Get temperature data for cooperative charts - ownership check required."""
+    allowed, resp, status = _ensure_cooperative_owner(coop_id)
+    if not allowed:
+        return resp, status
+    
     duration = request.args.get('duration', '7d')
     
     conn = get_db_connection()
@@ -299,19 +333,20 @@ def get_cooperative_temperature_chart(coop_id):
             group_by = "DATE(horodatage)"
         
         placeholders = ",".join(["%s"] * len(sensor_ids))
-        cursor.execute(f"""
+        query = """
             SELECT 
                 DATE(horodatage) AS date,
-                {group_by} AS period,
+                {} AS period,
                 ROUND(AVG(temperature_c), 1) AS avgTemp,
                 ROUND(MAX(temperature_c), 1) AS maxTemp,
                 ROUND(AVG(humidite_pct), 1) AS humidity
             FROM mesures
-            WHERE id_capteur IN ({placeholders})
-            AND horodatage >= DATE_SUB(NOW(), {interval})
-            GROUP BY {group_by}, DATE(horodatage)
+            WHERE id_capteur IN ({})
+            AND horodatage >= DATE_SUB(NOW(), {})
+            GROUP BY {}, DATE(horodatage)
             ORDER BY horodatage ASC
-        """, tuple(sensor_ids))
+        """.format(group_by, placeholders, interval, group_by)
+        cursor.execute(query, tuple(sensor_ids))
         
         results = cursor.fetchall()
         chart_data = []
@@ -335,9 +370,13 @@ def get_cooperative_temperature_chart(coop_id):
 
 
 @coop_bp.route("/cooperative/<int:coop_id>/charts/alerts", methods=["GET"])
+@cooperative_required
 def get_cooperative_alerts_chart(coop_id):
-    """Get alerts data for cooperative charts"""
-    from flask import request
+    """Get alerts data for cooperative charts - ownership check required."""
+    allowed, resp, status = _ensure_cooperative_owner(coop_id)
+    if not allowed:
+        return resp, status
+    
     duration = request.args.get('duration', '7d')
     
     conn = get_db_connection()
@@ -357,20 +396,21 @@ def get_cooperative_alerts_chart(coop_id):
             date_format = "%a"
             group_by = "DATE(date_creation)"
         
-        cursor.execute(f"""
+        query = """
             SELECT 
                 DATE(date_creation) AS date,
-                {group_by} AS period,
+                {} AS period,
                 SUM(CASE WHEN statut IN ('OUVERTE', 'EN_COURS') THEN 1 ELSE 0 END) AS active,
                 SUM(CASE WHEN statut = 'RESOLUE' THEN 1 ELSE 0 END) AS resolved
             FROM alertes a
             JOIN capteurs c ON a.id_capteur = c.id_capteur
             JOIN zones_forestieres z ON c.id_zone = z.id_zone
             WHERE z.id_cooperative = %s
-            AND date_creation >= DATE_SUB(NOW(), {interval})
-            GROUP BY {group_by}, DATE(date_creation)
+            AND date_creation >= DATE_SUB(NOW(), {})
+            GROUP BY {}, DATE(date_creation)
             ORDER BY date_creation ASC
-        """, (coop_id,))
+        """.format(group_by, interval, group_by)
+        cursor.execute(query, (coop_id,))
         
         results = cursor.fetchall()
         chart_data = []
@@ -393,9 +433,13 @@ def get_cooperative_alerts_chart(coop_id):
 
 
 @coop_bp.route("/cooperative/<int:coop_id>/charts/sensors", methods=["GET"])
+@cooperative_required
 def get_cooperative_sensors_chart(coop_id):
-    """Get sensor readings data for cooperative charts"""
-    from flask import request
+    """Get sensor readings data for cooperative charts - ownership check required."""
+    allowed, resp, status = _ensure_cooperative_owner(coop_id)
+    if not allowed:
+        return resp, status
+    
     duration = request.args.get('duration', '7d')
     
     conn = get_db_connection()
@@ -427,17 +471,18 @@ def get_cooperative_sensors_chart(coop_id):
             group_by = "DATE(horodatage)"
         
         placeholders = ",".join(["%s"] * len(sensor_ids))
-        cursor.execute(f"""
+        query = """
             SELECT 
                 DATE(horodatage) AS date,
-                {group_by} AS period,
+                {} AS period,
                 COUNT(*) AS readings
             FROM mesures
-            WHERE id_capteur IN ({placeholders})
-            AND horodatage >= DATE_SUB(NOW(), {interval})
-            GROUP BY {group_by}, DATE(horodatage)
+            WHERE id_capteur IN ({})
+            AND horodatage >= DATE_SUB(NOW(), {})
+            GROUP BY {}, DATE(horodatage)
             ORDER BY horodatage ASC
-        """, tuple(sensor_ids))
+        """.format(group_by, placeholders, interval, group_by)
+        cursor.execute(query, tuple(sensor_ids))
         
         results = cursor.fetchall()
         chart_data = []
