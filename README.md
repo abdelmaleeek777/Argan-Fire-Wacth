@@ -102,6 +102,12 @@ The platform uses a custom “Argan Fire Watch” design language inspired by th
 
 ---
 
+# Project Demo
+
+A complete demonstration video of Argan Fire Watch is available here:
+
+▶️ [Watch the Demo Video on Google Drive](https://drive.google.com/file/d/1kQMUHgxWzlaMda9I3Qvck0GfEPBfUhEy/view?usp=sharing)
+
 # Project Structure
 
 ```txt
@@ -154,8 +160,6 @@ pip install -r requirements.txt
 ```
 
 ---
-
-
 
 # Run the Project
 
