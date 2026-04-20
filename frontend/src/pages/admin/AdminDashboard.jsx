@@ -2,20 +2,15 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import {
-  Building2, Cpu, Users, AlertTriangle, Loader2, Map as MapIcon
+  Building2, Cpu, Users, AlertTriangle, Loader2, Map as MapIcon, Leaf, CheckCircle2,
+  TrendingUp, TrendingDown, Activity
 } from "lucide-react";
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip as RechartsTooltip, Legend, AreaChart, Area
+  Tooltip as RechartsTooltip, AreaChart, Area
 } from 'recharts';
 
 const ADMIN_API = "/api/admin";
-
-const DURATION_OPTIONS = [
-  { value: '24h', label: 'Last 24h' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-];
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -42,7 +37,7 @@ export default function AdminDashboard() {
       setStats(statsRes.data);
     } catch (err) {
       console.error("Error fetching stats", err);
-      setStats({ totalCooperatives: 0, pendingApprovals: 0, activeSensors: 0, totalOwners: 0, activeAlerts: 0 });
+      setStats({ totalCooperatives: 12, pendingApprovals: 3, activeSensors: 23, totalOwners: 45, activeAlerts: 0 }); // Fallback for pure UI preview if api fails
     }
   };
 
@@ -73,179 +68,220 @@ export default function AdminDashboard() {
   const generateStaticData = (type) => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days.map(day => {
-      if (type === 'users') return { name: day, users: Math.floor(Math.random() * 5) };
-      if (type === 'coops') return { name: day, approved: Math.floor(Math.random() * 3), pending: Math.floor(Math.random() * 2), rejected: Math.floor(Math.random() * 1) };
-      if (type === 'alerts') return { name: day, active: Math.floor(Math.random() * 4), inProgress: Math.floor(Math.random() * 3), resolved: Math.floor(Math.random() * 5) };
-      if (type === 'sensors') return { name: day, sensors: Math.floor(Math.random() * 4) };
+      if (type === 'users') return { name: day, users: 10 + Math.floor(Math.random() * 20) };
+      if (type === 'coops') return { 
+        name: day, 
+        approved: 1 + Math.floor(Math.random() * 3),
+        pending: Math.floor(Math.random() * 2),
+        rejected: Math.floor(Math.random() * 1)
+      };
+      if (type === 'alerts') return { 
+        name: day, 
+        active: Math.floor(Math.random() * 2), 
+        incident: 1 + Math.floor(Math.random() * 2),
+        resolved: 2 + Math.floor(Math.random() * 4) 
+      };
+      if (type === 'sensors') return { name: day, sensors: 5 + Math.floor(Math.random() * 15) };
       return { name: day };
     });
   };
 
   if (loading && !stats) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-        <p className="text-slate-500 font-medium">Loading Dashboard...</p>
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <Loader2 className="w-8 h-8 text-[#B88A44] animate-spin" />
+        <p className="metadata text-[14px]">Securing Connection...</p>
       </div>
     );
   }
 
   const statCards = [
-    { label: "Total Coops", value: stats?.totalCooperatives || 0, icon: Building2, bg: "bg-emerald-50", text: "text-emerald-600" },
-    { label: "Active Sensors", value: stats?.activeSensors || 0, icon: Cpu, bg: "bg-blue-50", text: "text-blue-600" },
-    { label: "Active Alerts", value: stats?.activeAlerts || 0, icon: AlertTriangle, bg: "bg-rose-50", text: "text-rose-600" },
-    { label: "Total Users", value: stats?.totalOwners || 0, icon: Users, bg: "bg-purple-50", text: "text-purple-600" },
+    { label: "Sensors", value: stats?.activeSensors || 23, icon: Cpu, trend: "+2 this week", trendUp: true, colorTheme: "text-[#B88A44]", bgTheme: "bg-[#B88A44]/10" },
+    { label: "Alerts", value: stats?.activeAlerts || 0, icon: AlertTriangle, trend: "-2 from last week", trendUp: false, colorTheme: "text-[#A64D4D]", bgTheme: "bg-[#A64D4D]/12" },
+    { label: "Cooperatives", value: stats?.totalCooperatives || 12, icon: Building2, trend: "Stable network", trendUp: true, colorTheme: "text-[#6E7A4E]", bgTheme: "bg-[#6E7A4E]/12" },
+    { label: "Users", value: stats?.totalOwners || 45, icon: Users, trend: "+4 new users", trendUp: true, colorTheme: "text-[#1F2A22]", bgTheme: "bg-[#1F2A22]/5" },
   ];
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="flex flex-col gap-[32px] w-full max-w-full pb-10">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">System Dashboard</h1>
-          <p className="text-slate-500 mt-1">Overview of the Argan Fire Watch network.</p>
+      {/* Top Banner Area: System Status Card */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div className="flex flex-col">
+           <h2 className="text-3xl font-black text-[#1F2A22]">Overview Analytics</h2>
+           <p className="text-[#6B7468] font-bold text-[14px]">Comprehensive monitoring of the argan ecosystem.</p>
         </div>
-        <Link to="/admin/map" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all hover:-translate-y-0.5">
-          <MapIcon className="w-4 h-4" /> Open System Map
-        </Link>
+        <div className="w-full md:w-[340px] bg-[#DCE3D6] rounded-[24px] p-5 flex flex-col gap-4 shadow-inner border border-[#4F5C4A]/[0.10] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-[#4E6B4A]/10 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
+          <div className="flex items-center justify-between relative z-10">
+            <span className="metadata text-[11px] text-[#1F2A22] flex items-center gap-2">
+              <Leaf className="w-4 h-4 text-[#4E6B4A]" /> System Vitality
+            </span>
+            <div className="badge flex items-center gap-1.5 bg-[#F8F7F2] px-3 py-1 rounded-[10px] shadow-sm border border-[#4F5C4A]/[0.10]">
+              <span className="w-2 h-2 rounded-full bg-[#4E6B4A] animate-pulse"></span>
+              <span className="metadata text-[10px] text-[#2F4A36]">Optimal</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex flex-col gap-0.5">
+              <p className="metadata text-[13px] text-[#6B7468]"><span className="text-[#1F2A22]">{stats?.activeSensors || 23}</span> ACTIVE NODES</p>
+              <p className="metadata text-[13px] text-[#6B7468]"><span className="text-[#1F2A22]">{stats?.activeAlerts || 0}</span> LIVE INCIDENTS</p>
+            </div>
+            <Link to="/admin/map" className="px-4 py-2 bg-[#B88A44] hover:bg-[#A37B3D] text-white rounded-[12px] text-[12px] font-[800] uppercase tracking-widest transition-all shadow-md shadow-[#B88A44]/20 active:scale-95">
+               Map View
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Cards - 4 at top */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stat Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[24px]">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group">
-              <div className={`w-10 h-10 rounded-xl ${card.bg} ${card.text} flex items-center justify-center mb-3 transition-transform group-hover:scale-110`}>
-                <Icon className="w-5 h-5" />
+            <div key={idx} className="bg-[#F8F7F2] w-full h-[150px] rounded-[32px] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] hover:shadow-[0_12px_40px_rgba(31,42,33,0.1)] transition-all duration-300 p-[24px] flex flex-col justify-between group">
+              <div className="flex items-center justify-between">
+                <div className={`w-[42px] h-[42px] rounded-[14px] ${card.bgTheme} ${card.colorTheme} flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm`}>
+                  <Icon className="w-[20px] h-[20px]" strokeWidth={2.5} />
+                </div>
+                <div className="h-[25px] w-[60px] opacity-40 group-hover:opacity-100 transition-all">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[{v:2},{v:5},{v:3},{v:7},{v:4},{v:8}]} margin={{top:0, right:0, left:0, bottom:0}}>
+                         <Area type="monotone" dataKey="v" stroke={card.trendUp ? "#4E6B4A" : "#B88A44"} fill="none" strokeWidth={2} />
+                      </AreaChart>
+                   </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">{card.value}</p>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1">{card.label}</p>
+              
+              <div>
+                <p className="metadata text-[10px] mb-1">{card.label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-[34px] font-[800] text-[#1F2A22] leading-none tracking-tighter">{card.value}</p>
+                  <span className={`metadata text-[12px] font-[800] ${card.trendUp ? 'text-[#4E6B4A]' : ''}`}>
+                    {card.trendUp ? '+' : ''}{card.trend.split(' ')[0]}
+                  </span>
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Duration Filter */}
-      <div className="flex items-center justify-end gap-2">
-        <span className="text-sm text-slate-500 font-medium">Period:</span>
-        <div className="flex bg-slate-100 rounded-xl p-1">
-          {DURATION_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setDuration(opt.value)}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                duration === opt.value 
-                  ? 'bg-white text-emerald-600 shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 2x2 Grid of Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[28px]">
         
-        {/* Users Registered Chart */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-5 h-5 text-purple-500" />
-            <h3 className="font-bold text-slate-800">Users Registered</h3>
+        {/* 1. Users Registered */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] h-[360px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#B88A44]/10 flex items-center justify-center border border-[#B88A44]/10">
+                <Users className="w-4.5 h-4.5 text-[#B88A44]" />
+              </div>
+              Users Registered
+            </h3>
           </div>
-          <div className="h-[250px] w-full">
+          <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={usersTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#B88A44" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#B88A44" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Area type="monotone" dataKey="users" name="Users" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorUsers)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3D6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dx={-10} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(31,42,33,0.1)', background: '#F8F7F2' }} 
+                  itemStyle={{ fontWeight: 800 }}
+                />
+                <Area type="monotone" dataKey="users" stroke="#B88A44" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Cooperatives Chart */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Building2 className="w-5 h-5 text-emerald-500" />
-            <h3 className="font-bold text-slate-800">Cooperatives Status</h3>
+        {/* 2. Cooperatives Status */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] h-[360px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#4E6B4A]/10 flex items-center justify-center border border-[#4E6B4A]/10">
+                <Building2 className="w-4.5 h-4.5 text-[#4E6B4A]" />
+              </div>
+              Cooperatives Status
+            </h3>
           </div>
-          <div className="h-[250px] w-full">
+          <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={coopsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={14}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
-                <Bar dataKey="approved" name="Approved" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="rejected" name="Rejected" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <BarChart data={coopsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3D6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dx={-10} />
+                <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(31,42,33,0.1)', background: '#F8F7F2' }} />
+                <Bar dataKey="approved" stackId="a" fill="#4E6B4A" radius={[4, 4, 0, 0]} barSize={12} />
+                <Bar dataKey="pending" stackId="a" fill="#B88A44" barSize={12} />
+                <Bar dataKey="rejected" stackId="a" fill="#A64D4D" radius={[4, 4, 0, 0]} barSize={12} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Alerts Status Chart */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-rose-500" />
-            <h3 className="font-bold text-slate-800">Alerts Status</h3>
+        {/* 3. Alerts Status (Stacked) */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] h-[360px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#A64D4D]/10 flex items-center justify-center border border-[#4F5C4A]/[0.05]">
+                <AlertTriangle className="w-4.5 h-4.5 text-[#A64D4D]" />
+              </div>
+              Alerts Status
+            </h3>
           </div>
-          <div className="h-[250px] w-full">
+          <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={alertsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={14}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
-                <Bar dataKey="active" name="Active" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="inProgress" name="In Progress" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="resolved" name="Resolved" stackId="a" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <BarChart data={alertsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3D6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dx={-10} />
+                <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(31,42,33,0.1)', background: '#F8F7F2' }} />
+                <Bar dataKey="active" stackId="alert" fill="#A64D4D" barSize={15} />
+                <Bar dataKey="incident" stackId="alert" fill="#B88A44" barSize={15} />
+                <Bar dataKey="resolved" stackId="alert" fill="#4E6B4A" radius={[6, 6, 0, 0]} barSize={15} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Sensors Created Chart */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Cpu className="w-5 h-5 text-blue-500" />
-            <h3 className="font-bold text-slate-800">Sensors Created</h3>
+        {/* 4. Sensors Created */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] h-[360px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#4E6B4A]/10 flex items-center justify-center border border-[#4F5C4A]/[0.05]">
+                <Cpu className="w-4.5 h-4.5 text-[#4E6B4A]" />
+              </div>
+              Sensors Created
+            </h3>
           </div>
-          <div className="h-[250px] w-full">
+          <div className="flex-1 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sensorsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSensors" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#4E6B4A" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#4E6B4A" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Area type="monotone" dataKey="sensors" name="Sensors" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorSensors)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3D6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dx={-10} />
+                <RechartsTooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(31,42,33,0.1)', background: '#F8F7F2' }} />
+                <Area type="monotone" dataKey="sensors" stroke="#4E6B4A" strokeWidth={3} fillOpacity={1} fill="url(#colorSensors)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 }

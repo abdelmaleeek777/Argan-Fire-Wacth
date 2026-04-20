@@ -214,21 +214,23 @@ export default function CoopMap() {
     // Map alert to zone index
     const zoneMatch = zones.find(z => z.nom_zone === a.zone);
     if (zoneMatch) {
-      alertsByZone[zoneMatch.id_zone] = (alertsByZone[zoneMatch.id_zone] || 0) + (a.statut === "OUVERTE" ? 1 : 0);
+      // Map 'active' or 'OUVERTE' to count as open alerts
+      const isOpen = a.statut === "active" || a.statut === "OUVERTE";
+      alertsByZone[zoneMatch.id_zone] = (alertsByZone[zoneMatch.id_zone] || 0) + (isOpen ? 1 : 0);
     }
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-40px)] animate-in fade-in duration-700 bg-transparent">
       {/* Header Inline */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      <div className="bg-[#F8F7F2] rounded-[24px] border border-[#4F5C4A]/[0.10] shadow-[0_4px_12px_rgba(31,42,33,0.03)] p-5 mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200">
-            <MapIcon className="w-6 h-6" />
+          <div className="w-[48px] h-[48px] rounded-[14px] bg-[#DCE3D6] flex items-center justify-center border border-[#4F5C4A]/[0.10]">
+            <MapIcon className="w-6 h-6 text-[#4E6B4A]" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Spatial Intelligence</h1>
-            <p className="text-sm font-medium text-slate-500 mt-0.5">
+            <h1 className="text-[22px] font-[800] text-[#1F2A22] tracking-tight leading-none">Spatial Intelligence</h1>
+            <p className="text-[12px] font-[700] text-[#6B7468] mt-1 uppercase tracking-widest">
               {cooperative?.nom_cooperative} · {zones.length} Monitored zones
             </p>
           </div>
@@ -236,10 +238,10 @@ export default function CoopMap() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black border transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-[12px] text-[12px] font-[800] tracking-wider uppercase transition-all ${
               showHeatmap
-                ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-200"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "bg-[#B55A3C] text-white shadow-md shadow-[#B55A3C]/20"
+                : "bg-[#F8F7F2] text-[#1F2A22] border border-[#4F5C4A]/20 hover:bg-[#DCE3D6]"
             }`}
           >
             <Thermometer className="w-4 h-4" />
@@ -247,10 +249,10 @@ export default function CoopMap() {
           </button>
           <button
             onClick={() => setShowCapteurs(!showCapteurs)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black border transition-all ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-[12px] text-[12px] font-[800] tracking-wider uppercase transition-all ${
               showCapteurs
-                ? "bg-slate-800 text-white border-slate-800 shadow-lg shadow-slate-200"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "bg-[#4E6B4A] text-white shadow-md shadow-[#4E6B4A]/20"
+                : "bg-[#F8F7F2] text-[#1F2A22] border border-[#4F5C4A]/20 hover:bg-[#DCE3D6]"
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -259,47 +261,47 @@ export default function CoopMap() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-5 min-h-0">
         {/* Leaflet Map */}
-        <div className="flex-[3] relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="flex-[3] relative bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] overflow-hidden shadow-[0_8px_24px_rgba(31,42,33,0.04)]">
           {/* Legend Overlay */}
-          <div className="absolute top-4 left-4 z-[1000] bg-white/90 backdrop-blur-md rounded-2xl p-4 border border-slate-100 shadow-xl max-w-[180px]">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5 underline decoration-emerald-500 underline-offset-4">
-              <Info className="w-3 h-3 text-emerald-500" /> Risk Levels
+          <div className="absolute top-5 left-5 z-[1000] bg-[#FAF8F4]/95 backdrop-blur-md rounded-[20px] p-5 border border-[#4F5C4A]/[0.10] shadow-[0_8px_32px_rgba(31,42,33,0.08)] min-w-[200px]">
+            <div className="text-[10px] font-[800] text-[#6B7468] uppercase tracking-widest mb-4 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5 text-[#4E6B4A]" /> Risk Levels
             </div>
             {Object.entries(risqueBadge).map(([k, v]) => (
-              <div key={k} className="flex items-center gap-2 mb-2 last:mb-0">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: risqueFill[k]?.stroke }} />
-                <span className={`text-[10px] font-bold capitalize ${v.color} tracking-tight`}>{v.label}</span>
+              <div key={k} className="flex items-center gap-3 mb-2.5 last:mb-0">
+                <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: risqueFill[k]?.stroke }} />
+                <span className={`text-[12px] font-[800] capitalize tracking-wide ${v.color}`}>{v.label}</span>
               </div>
             ))}
 
             {showCapteurs && (
-              <div className="border-t border-slate-100 mt-4 pt-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
-                  <span className="text-[10px] font-bold text-slate-600">Active</span>
+              <div className="border-t border-[#4F5C4A]/10 mt-5 pt-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-3.5 h-3.5 rounded-full bg-[#10b981] border-[2px] border-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                  <span className="text-[12px] font-[800] text-[#1F2A22]">Active</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white shadow-sm animate-pulse" />
-                  <span className="text-[10px] font-bold text-rose-600">Alarm</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-3.5 h-3.5 rounded-full bg-[#ef4444] border-[2px] border-white shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse" />
+                  <span className="text-[12px] font-[800] text-[#ef4444]">Alarm</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-slate-400 border-2 border-white" />
-                  <span className="text-[10px] font-bold text-slate-400">Failure</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-3.5 h-3.5 rounded-full bg-[#94a3b8] border-[2px] border-white" />
+                  <span className="text-[12px] font-[800] text-[#6B7468]">Failure</span>
                 </div>
               </div>
             )}
 
             {showHeatmap && (
-              <div className="border-t border-slate-100 mt-4 pt-4">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <Thermometer className="w-3 h-3 text-orange-500" /> Temperature
+              <div className="border-t border-[#4F5C4A]/10 mt-5 pt-5">
+                <div className="text-[10px] font-[800] text-[#6B7468] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Thermometer className="w-3.5 h-3.5 text-[#B55A3C]" /> Temperature Heat
                 </div>
-                <div className="h-3 rounded-full bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500" />
-                <div className="flex justify-between mt-1">
-                  <span className="text-[9px] font-bold text-blue-500">Cold</span>
-                  <span className="text-[9px] font-bold text-red-500">Hot</span>
+                <div className="h-4 rounded-[8px] bg-gradient-to-r from-blue-500 via-green-500 via-yellow-500 to-red-500 border border-[#4F5C4A]/5" />
+                <div className="flex justify-between mt-2">
+                  <span className="text-[10px] font-[800] text-blue-600 uppercase tracking-widest">Cold</span>
+                  <span className="text-[10px] font-[800] text-red-600 uppercase tracking-widest">Hot</span>
                 </div>
               </div>
             )}
@@ -339,7 +341,7 @@ export default function CoopMap() {
                   pathOptions={{
                     fillColor: rc.stroke,
                     fillOpacity: isSelected ? 0.4 : 0.15,
-                    color: isSelected ? "#065f46" : rc.stroke,
+                    color: isSelected ? "#1F2A22" : rc.stroke,
                     weight: isSelected ? 4 : 2,
                     dashArray: isSelected ? "" : "5, 5"
                   }}
@@ -348,10 +350,12 @@ export default function CoopMap() {
                   }}
                 >
                   <Popup className="custom-popup">
-                    <div className="p-1">
-                      <div className="font-black text-slate-800 text-sm">{z.nom_zone}</div>
-                      <div className="text-xs font-bold text-emerald-600 mt-1">{z.superficie_ha} hectares</div>
-                      <div className="mt-2 text-[10px] font-black uppercase text-slate-400 border-t pt-2">Current Risk: {z.indice_risque}</div>
+                    <div className="p-2">
+                      <div className="font-[900] text-[#1F2A22] text-[16px] leading-tight">{z.nom_zone}</div>
+                      <div className="text-[12px] font-[900] text-[#4E6B4A] mt-1">{z.superficie_ha} HA</div>
+                      <div className="mt-3 text-[10px] font-[800] uppercase text-[#6B7468] border-t border-[#4F5C4A]/10 pt-2 tracking-widest">
+                        Current Risk: <span className="text-[#1F2A22]">{z.indice_risque}</span>
+                      </div>
                     </div>
                   </Popup>
                 </Polygon>
@@ -367,16 +371,16 @@ export default function CoopMap() {
               const customIcon = L.divIcon({
                 className: 'custom-div-icon',
                 html: `<div style="
-                  width: 14px;
-                  height: 14px;
+                  width: 16px;
+                  height: 16px;
                   background-color: ${color};
                   border: 2px solid white;
                   border-radius: 50%;
                   box-shadow: 0 0 ${hasAlert ? '12px 4px rgba(239, 68, 68, 0.5)' : '4px rgba(0,0,0,0.2)'};
                   ${hasAlert ? 'animation: pulse 1.5s infinite;' : ''}
                 "></div>`,
-                iconSize: [14, 14],
-                iconAnchor: [7, 7]
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
               });
 
               return (
@@ -385,15 +389,15 @@ export default function CoopMap() {
                   position={[s.latitude, s.longitude]}
                   icon={customIcon}
                 >
-                  <Popup>
-                    <div className="text-center p-1">
-                      <div className="text-[10px] font-black text-slate-400 uppercase mb-1">{s.reference_serie}</div>
+                  <Popup className="custom-popup">
+                    <div className="text-center p-2">
+                      <div className="text-[10px] font-[900] text-[#4E6B4A] uppercase mb-1 tracking-widest">{s.reference_serie}</div>
                       {s.latest_reading ? (
-                        <div className={`text-lg font-black ${hasAlert ? "text-rose-600" : "text-slate-800"}`}>
+                        <div className={`text-[20px] font-[900] ${hasAlert ? "text-[#B55A3C]" : "text-[#1F2A22]"}`}>
                           {s.latest_reading.temperature_c}°C
                         </div>
                       ) : (
-                        <div className="text-xs text-slate-400 italic font-bold">Offline</div>
+                        <div className="text-[11px] text-[#6B7468] italic font-[800]">Offline</div>
                       )}
                     </div>
                   </Popup>
@@ -404,13 +408,13 @@ export default function CoopMap() {
         </div>
 
         {/* Side Panel */}
-        <div className="w-full lg:w-80 flex flex-col gap-4 overflow-hidden">
+        <div className="w-full lg:w-[360px] flex flex-col gap-4 overflow-hidden shrink-0">
           {!zone ? (
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-hidden flex flex-col flex-1">
-              <h3 className="font-black text-slate-800 text-sm mb-5 flex items-center gap-2 pb-3 border-b border-slate-100 uppercase tracking-tight">
-                Zones List
+            <div className="bg-[#FAF8F4] rounded-[32px] border border-[#4F5C4A]/[0.10] p-6 shadow-[0_8px_24px_rgba(31,42,33,0.03)] overflow-hidden flex flex-col flex-1">
+              <h3 className="font-[900] text-[#1F2A22] text-[18px] mb-5 flex items-center gap-2 pb-4 border-b border-[#4F5C4A]/[0.08] tracking-tight">
+                Zonal Overview
               </h3>
-              <div className="overflow-y-auto space-y-3 flex-1 pr-1">
+              <div className="overflow-y-auto space-y-3 flex-1 pr-2 custom-scrollbar">
                 {zonesWithPolygons.length > 0 ? zonesWithPolygons.map(z => {
                   const rb = risqueBadge[z.niveau_risque_base] || risqueBadge.faible;
                   const activeAlertsCount = alertsByZone[z.id_zone] || 0;
@@ -418,18 +422,18 @@ export default function CoopMap() {
                     <div
                       key={z.id_zone}
                       onClick={() => setSelectedZone(z.id_zone)}
-                      className="p-4 rounded-2xl bg-white border border-slate-100 hover:border-emerald-200 shadow-sm hover:shadow-md hover:bg-emerald-50/20 transition-all cursor-pointer flex justify-between items-center group"
+                      className="p-5 rounded-[20px] bg-[#F8F7F2] border border-[#4F5C4A]/[0.05] hover:border-[#4E6B4A]/30 shadow-[0_2px_8px_rgba(31,42,33,0.02)] hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer flex justify-between items-center group"
                     >
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-800 text-sm group-hover:text-emerald-600 transition-colors truncate">{z.nom_zone}</div>
-                        <div className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-tighter">{z.superficie_ha} HA</div>
+                      <div className="min-w-0 pr-3">
+                        <div className="font-[800] text-[#1F2A22] text-[15px] group-hover:text-[#4E6B4A] transition-colors truncate leading-tight">{z.nom_zone}</div>
+                        <div className="text-[10px] font-[900] text-[#6B7468] mt-1.5 uppercase tracking-widest">{z.superficie_ha} HA</div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                        <span className={`text-[9px] font-black uppercase py-0.5 px-2 rounded-lg border ${rb.bg} ${rb.color}`}>
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <span className={`text-[9px] font-[900] uppercase py-1 px-2.5 rounded-[8px] bg-white border border-[#4F5C4A]/[0.05] shadow-sm ${rb.color}`}>
                           {rb.label}
                         </span>
                         {activeAlertsCount > 0 && (
-                          <span className="text-[9px] font-black bg-rose-600 text-white px-2 py-0.5 rounded-lg animate-pulse shadow-sm">
+                          <span className="text-[9px] font-[900] bg-[#B55A3C] text-white px-2.5 py-1 rounded-[8px] animate-pulse shadow-[0_2px_8px_rgba(181,90,60,0.4)] tracking-widest">
                             {activeAlertsCount} ALERT
                           </span>
                         )}
@@ -438,28 +442,28 @@ export default function CoopMap() {
                   );
                 }) : (
                   <div className="text-center py-12">
-                    <MapIcon className="w-12 h-12 text-slate-100 mx-auto mb-3" />
-                    <p className="text-xs text-slate-400 font-bold">No zones configured</p>
+                    <MapIcon className="w-12 h-12 text-[#6B7468]/30 mx-auto mb-3" />
+                    <p className="text-[12px] text-[#6B7468] font-[800] uppercase tracking-widest">No zones configured</p>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col flex-1 animate-in slide-in-from-right-10 duration-500 overflow-hidden">
+            <div className="bg-[#FAF8F4] rounded-[32px] border border-[#4F5C4A]/[0.10] p-6 shadow-[0_8px_24px_rgba(31,42,33,0.03)] flex flex-col flex-1 animate-in slide-in-from-right-10 duration-500 overflow-hidden relative">
               <button
                 onClick={() => setSelectedZone(null)}
-                className="self-start text-[10px] font-black text-slate-400 hover:text-emerald-600 flex items-center gap-1 mb-6 bg-slate-50 px-3 py-1.5 rounded-xl transition-all border border-slate-100 uppercase tracking-widest"
+                className="self-start text-[10px] font-[900] text-[#6B7468] hover:text-[#1F2A22] hover:bg-[#DCE3D6] flex items-center gap-1.5 mb-6 bg-[#F8F7F2] px-3.5 py-2 rounded-[12px] transition-all border border-[#4F5C4A]/[0.10] uppercase tracking-widest shadow-sm"
               >
-                <ChevronLeft className="w-3.5 h-3.5" /> Back to list
+                <ChevronLeft className="w-4 h-4" /> Back to list
               </button>
 
               {/* Zone Info card */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{zone.nom_zone}</h2>
-                <div className="flex items-center gap-2 mt-3">
-                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                   <p className="text-xs font-bold text-slate-500 italic uppercase tracking-tighter">
-                    Real-time data
+              <div className="mb-8 pl-1">
+                <h2 className="text-[28px] font-[900] text-[#1F2A22] tracking-tight leading-none mb-3">{zone.nom_zone}</h2>
+                <div className="flex items-center gap-2.5 inline-flex px-3 py-1.5 bg-[#DCE3D6]/50 rounded-[8px]">
+                   <div className="w-2.5 h-2.5 rounded-full bg-[#4E6B4A] animate-pulse shadow-[0_0_8px_rgba(78,107,74,0.6)]" />
+                   <p className="text-[10px] font-[900] text-[#4E6B4A] uppercase tracking-widest">
+                    Real-time link
                   </p>
                 </div>
               </div>
@@ -467,14 +471,14 @@ export default function CoopMap() {
               {/* Zone Quick Stats */}
               <div className="grid grid-cols-2 gap-3 mb-8">
                 {[
-                  { label: "Superficie", val: `${zone.superficie_ha} ha`, color: "text-slate-800" },
-                  { label: "Alertes", val: alertsByZone[zone.id_zone] || 0, color: (alertsByZone[zone.id_zone] || 0) > 0 ? "text-rose-600" : "text-emerald-600" },
-                  { label: "Risque", val: zone.indice_risque, color: "text-slate-800" },
-                  { label: "Capteurs", val: capteursZone.length, color: "text-slate-800" },
-                ].map(s => (
-                  <div key={s.label} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm">
-                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.label}</div>
-                    <div className={`text-base font-black ${s.color}`}>
+                  { label: "Superficie", val: `${zone.superficie_ha} ha`, color: "text-[#1F2A22]" },
+                  { label: "Alertes", val: alertsByZone[zone.id_zone] || 0, color: (alertsByZone[zone.id_zone] || 0) > 0 ? "text-[#B55A3C]" : "text-[#4E6B4A]" },
+                  { label: "Risque", val: zone.indice_risque, color: "text-[#1F2A22]" },
+                  { label: "Capteurs", val: capteursZone.length, color: "text-[#1F2A22]" },
+                ].map((s, i) => (
+                  <div key={i} className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.08] rounded-[20px] p-5 transition-all hover:bg-white hover:shadow-md hover:-translate-y-0.5">
+                    <div className="text-[10px] font-[900] text-[#6B7468] uppercase tracking-widest mb-1.5">{s.label}</div>
+                    <div className={`text-[20px] font-[900] leading-none ${s.color}`}>
                       {s.val}
                     </div>
                   </div>
@@ -482,37 +486,37 @@ export default function CoopMap() {
               </div>
 
               {/* Sensors List in side panel */}
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2 ml-1">
-                <Layers className="w-3.5 h-3.5 text-emerald-500" /> Sensor Telemetry
+              <h3 className="text-[11px] font-[900] text-[#6B7468] uppercase tracking-widest mb-4 flex items-center gap-2 pl-2">
+                <Layers className="w-4 h-4 text-[#4E6B4A]" /> Sensor Telemetry
               </h3>
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                 {capteursZone.map(c => {
                   const isPanne = c.statut !== "ACTIF";
                   const hasAlert = c.latest_reading && c.latest_reading.temperature_c > 50;
                   
                   return (
-                    <div key={c.id_capteur} className="flex items-center gap-3 p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-100 shadow-sm transition-all group">
-                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPanne ? "bg-slate-300" : hasAlert ? "bg-rose-500 animate-pulse" : "bg-emerald-500"}`} />
+                    <div key={c.id_capteur} className="flex items-center gap-4 p-4 bg-[#F8F7F2] border border-[#4F5C4A]/[0.05] rounded-[20px] hover:border-[#4E6B4A]/20 shadow-sm transition-all group">
+                      <div className={`w-3 h-3 rounded-full flex-shrink-0 shadow-sm ${isPanne ? "bg-[#94a3b8]" : hasAlert ? "bg-[#ef4444] animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" : "bg-[#10b981]"}`} />
                       
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-800 text-xs truncate group-hover:text-emerald-600">{c.reference_serie}</div>
-                        <div className="text-[9px] text-slate-400 font-black uppercase mt-0.5">{c.statut}</div>
+                        <div className="font-[800] text-[#1F2A22] text-[13px] truncate group-hover:text-[#4E6B4A] transition-colors">{c.reference_serie}</div>
+                        <div className="text-[9px] text-[#6B7468] font-[900] uppercase tracking-widest mt-1">{c.statut}</div>
                       </div>
 
-                      <div className={`text-sm font-black ${hasAlert ? "text-rose-600" : "text-slate-800"}`}>
+                      <div className={`text-[16px] font-[900] bg-white px-2.5 py-1 rounded-[8px] border border-[#4F5C4A]/[0.05] shadow-sm ${hasAlert ? "text-[#B55A3C]" : "text-[#1F2A22]"}`}>
                         {c.latest_reading ? `${c.latest_reading.temperature_c}°C` : "—"}
                       </div>
                     </div>
                   );
                 })}
                 {capteursZone.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-[10px] text-slate-400 font-bold italic">Deployment pending...</p>
+                  <div className="text-center py-10 bg-[#F8F7F2] rounded-[20px] border border-[#4F5C4A]/[0.05] border-dashed">
+                    <p className="text-[10px] text-[#6B7468] font-[800] uppercase tracking-widest">Deployment pending</p>
                   </div>
                 )}
               </div>
 
-              <button className="mt-8 w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]">
+              <button className="mt-6 w-full py-4 bg-[#B88A44] hover:bg-[#A37839] text-white rounded-[16px] font-[900] text-[12px] uppercase tracking-widest shadow-[0_8px_24px_rgba(184,138,68,0.3)] transition-all hover:shadow-[0_12px_32px_rgba(184,138,68,0.4)] active:scale-[0.98]">
                 Zone Report
               </button>
             </div>
@@ -521,8 +525,31 @@ export default function CoopMap() {
       </div>
       
       <style>{`
-        .custom-popup .leaflet-popup-content-wrapper { border-radius: 1.5rem; padding: 4px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
-        .custom-popup .leaflet-popup-tip { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+        .custom-popup .leaflet-popup-content-wrapper { 
+          border-radius: 20px; 
+          padding: 8px; 
+          box-shadow: 0 12px 32px rgba(31,42,33,0.15); 
+          border: 1px solid rgba(79, 92, 74, 0.1);
+          background-color: #FAF8F4;
+        }
+        .custom-popup .leaflet-popup-tip { 
+          box-shadow: 0 12px 32px rgba(31,42,33,0.15); 
+          background-color: #FAF8F4;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(79, 92, 74, 0.05);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(79, 92, 74, 0.15);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(79, 92, 74, 0.25);
+        }
         @keyframes pulse {
           0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
           70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }

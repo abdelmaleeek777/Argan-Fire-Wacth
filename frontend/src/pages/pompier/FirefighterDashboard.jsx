@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { 
   Bell, Flame, Map as MapIcon, AlertTriangle, 
-  Loader2, Activity, Shield, Clock, CheckCircle
+  Loader2, Activity, Shield, Clock, CheckCircle, Leaf
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/axiosInstance';
@@ -132,37 +131,40 @@ export default function FirefighterDashboard() {
       label: 'Active Alerts', 
       value: stats.activeAlerts, 
       icon: Bell, 
-      color: 'rose',
-      gradient: 'from-rose-500 to-pink-600',
-      pulse: stats.activeAlerts > 0 
+      colorTheme: "text-[#A64D4D]", 
+      bgTheme: "bg-[#A64D4D]/12",
+      pulse: stats.activeAlerts > 0,
+      trendUp: false
     },
     { 
-      label: 'Resolved Alerts', 
+      label: 'Resolved', 
       value: stats.resolvedAlerts, 
       icon: CheckCircle, 
-      color: 'emerald',
-      gradient: 'from-emerald-500 to-teal-600'
+      colorTheme: "text-[#4E6B4A]", 
+      bgTheme: "bg-[#4E6B4A]/12",
+      trendUp: true
     },
     { 
       label: 'Total Alerts', 
       value: stats.totalAlerts, 
       icon: AlertTriangle, 
-      color: 'blue',
-      gradient: 'from-blue-500 to-indigo-600'
+      colorTheme: "text-[#B88A44]", 
+      bgTheme: "bg-[#B88A44]/10",
+      trendUp: true
     }
   ];
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <Loader2 className="w-10 h-10 text-rose-500 animate-spin" />
-        <p className="text-slate-500 font-medium">Loading Dashboard...</p>
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <Loader2 className="w-8 h-8 text-[#B88A44] animate-spin" />
+        <p className="metadata text-[14px]">Securing Connection...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="flex flex-col gap-[32px] w-full max-w-full pb-10">
       {/* Alert Notification Modal - Only show when available */}
       {pompierStatus === 'available' && (
         <AlertNotificationModal
@@ -174,28 +176,18 @@ export default function FirefighterDashboard() {
         />
       )}
 
-      {/* Epic Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-rose-900 to-orange-900 p-8">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-rose-500/20 to-transparent rounded-full blur-3xl"></div>
-        
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center shadow-xl shadow-rose-500/30">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                Welcome, {user.prenom || user.nom || 'Firefighter'}
-              </h1>
-              <p className="text-rose-200/80 text-sm mt-1">
-                Fire Response Command Center • {stats.resolvedAlerts} alerts resolved
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
+      {/* Top Banner Area — matches Admin */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div className="flex flex-col">
+           <h2 className="text-3xl font-black text-[#1F2A22]">Response Overview</h2>
+           <p className="text-[#6B7468] font-bold text-[14px]">Fire response monitoring and mission status.</p>
+        </div>
+        <div className="w-full md:w-[340px] bg-[#DCE3D6] rounded-[24px] p-5 flex flex-col gap-4 shadow-inner border border-[#4F5C4A]/[0.10] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-[#4E6B4A]/10 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
+          <div className="flex items-center justify-between relative z-10">
+            <span className="metadata text-[11px] text-[#1F2A22] flex items-center gap-2">
+              <Shield className="w-4 h-4 text-[#4E6B4A]" /> Responder Status
+            </span>
             {/* Status Toggle Button */}
             <button
               onClick={() => {
@@ -204,31 +196,34 @@ export default function FirefighterDashboard() {
                 } else if (pompierStatus === 'unavailable') {
                   setPompierStatus('available');
                 }
-                // Can't change status while on mission
               }}
               disabled={pompierStatus === 'on_mission'}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border cursor-pointer transition-all ${
+              className={`badge flex items-center gap-1.5 px-3 py-1 rounded-[10px] shadow-sm border cursor-pointer transition-all ${
                 pompierStatus === 'available' 
-                  ? 'bg-emerald-500/20 border-emerald-400/30 hover:bg-emerald-500/30' 
+                  ? 'bg-[#F8F7F2] border-[#4E6B4A]/20' 
                   : pompierStatus === 'on_mission'
-                  ? 'bg-amber-500/20 border-amber-400/30 cursor-not-allowed'
-                  : 'bg-slate-500/20 border-slate-400/30 hover:bg-slate-500/30'
+                  ? 'bg-[#B88A44]/10 border-[#B88A44]/20 cursor-not-allowed'
+                  : 'bg-[#F8F7F2] border-[#4F5C4A]/[0.10]'
               }`}
             >
-              <div className={`w-2 h-2 rounded-full ${
-                pompierStatus === 'available' ? 'bg-emerald-400 animate-pulse' : 
-                pompierStatus === 'on_mission' ? 'bg-amber-400' : 'bg-slate-400'
-              }`} />
-              <span className="text-white font-bold text-sm">
+              <span className={`w-2 h-2 rounded-full ${
+                pompierStatus === 'available' ? 'bg-[#4E6B4A] animate-pulse' : 
+                pompierStatus === 'on_mission' ? 'bg-[#B88A44]' : 'bg-[#6B7468]'
+              }`}></span>
+              <span className="metadata text-[10px] text-[#2F4A36]">
                 {pompierStatus === 'available' ? 'Available' : 
                  pompierStatus === 'on_mission' ? 'On Mission' : 'Unavailable'}
               </span>
             </button>
-            <Link 
-              to="/pompier/map"
-              className="flex items-center gap-2 px-5 py-3 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-xl hover:bg-white/20 transition-all shadow-lg text-sm font-bold"
-            >
-              <MapIcon className="w-4 h-4" /> Open Map
+          </div>
+          
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex flex-col gap-0.5">
+              <p className="metadata text-[13px] text-[#6B7468]"><span className="text-[#1F2A22]">{stats.activeAlerts}</span> ACTIVE ALERTS</p>
+              <p className="metadata text-[13px] text-[#6B7468]"><span className="text-[#1F2A22]">{stats.resolvedAlerts}</span> RESOLVED</p>
+            </div>
+            <Link to="/pompier/map" className="px-4 py-2 bg-[#B88A44] hover:bg-[#A37B3D] text-white rounded-[12px] text-[12px] font-[800] uppercase tracking-widest transition-all shadow-md shadow-[#B88A44]/20 active:scale-95">
+               Map View
             </Link>
           </div>
         </div>
@@ -236,21 +231,21 @@ export default function FirefighterDashboard() {
 
       {/* Active Mission Banner */}
       {pompierStatus === 'on_mission' && currentMission && (
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 flex items-center justify-between text-white shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-white/20 rounded-xl">
-              <Flame className="w-6 h-6 animate-pulse" />
+        <div className="bg-[#B88A44] rounded-[24px] p-5 flex items-center justify-between text-white shadow-[0_8px_24px_rgba(184,138,68,0.2)] border border-[#B88A44]/30">
+          <div className="flex items-center gap-4">
+            <div className="w-[42px] h-[42px] rounded-[14px] bg-white/20 flex items-center justify-center">
+              <Flame className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <div className="font-bold">Active Mission</div>
-              <div className="text-sm text-white/80">
-                {currentMission.zone || currentMission.cooperative} - {currentMission.cooperative || 'Responding'}
+              <div className="font-[800] text-[14px] uppercase tracking-wider">Active Mission</div>
+              <div className="text-[13px] text-white/80 font-[600]">
+                {currentMission.zone || currentMission.cooperative} — {currentMission.cooperative || 'Responding'}
               </div>
             </div>
           </div>
           <Link 
             to="/pompier/mission"
-            className="px-4 py-2 bg-white text-amber-600 rounded-xl font-bold text-sm hover:bg-white/90 transition-all"
+            className="px-4 py-2 bg-white text-[#B88A44] rounded-[12px] font-[800] text-[12px] uppercase tracking-widest hover:bg-white/90 transition-all shadow-sm"
           >
             View Mission
           </Link>
@@ -258,119 +253,137 @@ export default function FirefighterDashboard() {
       )}
 
       {error && (
-        <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center justify-between text-rose-800 font-bold">
+        <div className="bg-[#A64D4D]/10 border border-[#A64D4D]/20 p-4 rounded-[16px] flex items-center justify-between text-[#A64D4D] font-bold">
           <span>{error}</span>
-          <button onClick={fetchData} className="underline cursor-pointer">Retry</button>
+          <button onClick={fetchData} className="underline cursor-pointer text-[13px]">Retry</button>
         </div>
       )}
 
-      {/* Stats Cards - Only 3 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Stat Cards Row — matches Admin */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-[24px]">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
-            >
-              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${card.gradient} opacity-5 rounded-full -translate-y-8 translate-x-8`} />
-              <div className={`w-12 h-12 rounded-xl bg-${card.color}-50 text-${card.color}-500 flex items-center justify-center mb-3 transition-transform group-hover:scale-110`}>
-                <Icon className={`w-6 h-6 ${card.pulse ? 'animate-pulse' : ''}`} />
+            <div key={idx} className="bg-[#F8F7F2] w-full h-[150px] rounded-[32px] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] hover:shadow-[0_12px_40px_rgba(31,42,33,0.1)] transition-all duration-300 p-[24px] flex flex-col justify-between group">
+              <div className="flex items-center justify-between">
+                <div className={`w-[42px] h-[42px] rounded-[14px] ${card.bgTheme} ${card.colorTheme} flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm`}>
+                  <Icon className={`w-[20px] h-[20px] ${card.pulse ? 'animate-pulse' : ''}`} strokeWidth={2.5} />
+                </div>
+                <div className="h-[25px] w-[60px] opacity-40 group-hover:opacity-100 transition-all">
+                   <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[{v:2},{v:5},{v:3},{v:7},{v:4},{v:8}]} margin={{top:0, right:0, left:0, bottom:0}}>
+                         <Area type="monotone" dataKey="v" stroke={card.trendUp ? "#4E6B4A" : "#A64D4D"} fill="none" strokeWidth={2} />
+                      </AreaChart>
+                   </ResponsiveContainer>
+                </div>
               </div>
-              <p className="text-3xl font-black text-slate-800">{card.value}</p>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1">{card.label}</p>
-            </motion.div>
+              
+              <div>
+                <p className="metadata text-[10px] mb-1">{card.label}</p>
+                <p className="text-[34px] font-[800] text-[#1F2A22] leading-none tracking-tighter">{card.value}</p>
+              </div>
+            </div>
           );
         })}
       </div>
 
-      {/* Single Chart - Alerts This Week */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="w-5 h-5 text-rose-500" />
-          <h3 className="font-bold text-slate-800">Alerts This Week</h3>
-        </div>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={alertsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorAlerts" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-              <RechartsTooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600 }} />
-              <Area type="monotone" dataKey="alerts" name="New Alerts" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorAlerts)" />
-              <Area type="monotone" dataKey="resolved" name="Resolved" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorResolved)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Recent Alerts */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-slate-500" />
-            <h3 className="font-bold text-slate-800">Recent Activity</h3>
-          </div>
-          <Link to="/pompier/alertes" className="text-sm font-bold text-rose-500 hover:text-rose-600">
-            View All →
-          </Link>
-        </div>
+      {/* Charts Row — 2 columns matching Admin */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[28px]">
         
-        <div className="space-y-3">
-          {recentAlerts.length > 0 ? recentAlerts.map((alert, i) => (
-            <div 
-              key={i}
-              className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'bg-rose-100 text-rose-600' :
-                  alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'bg-amber-100 text-amber-600' :
-                  'bg-blue-100 text-blue-600'
-                }`}>
-                  <Flame className="w-5 h-5" />
+        {/* Alerts This Week — Area Chart */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] h-[360px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#A64D4D]/10 flex items-center justify-center border border-[#A64D4D]/10">
+                <AlertTriangle className="w-4.5 h-4.5 text-[#A64D4D]" />
+              </div>
+              Alerts This Week
+            </h3>
+          </div>
+          <div className="flex-1 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={alertsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorAlertsPompier" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#A64D4D" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#A64D4D" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorResolvedPompier" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4E6B4A" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#4E6B4A" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#DCE3D6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7468', fontWeight: 700 }} dx={-10} allowDecimals={false} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(31,42,33,0.1)', background: '#F8F7F2' }} 
+                  itemStyle={{ fontWeight: 800 }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                <Area type="monotone" dataKey="alerts" name="New Alerts" stroke="#A64D4D" strokeWidth={3} fillOpacity={1} fill="url(#colorAlertsPompier)" />
+                <Area type="monotone" dataKey="resolved" name="Resolved" stroke="#4E6B4A" strokeWidth={3} fillOpacity={1} fill="url(#colorResolvedPompier)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] rounded-[32px] flex flex-col p-[24px] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#B88A44]/10 flex items-center justify-center border border-[#B88A44]/10">
+                <Clock className="w-4.5 h-4.5 text-[#B88A44]" />
+              </div>
+              Recent Activity
+            </h3>
+            <Link to="/pompier/alertes" className="text-[12px] font-[800] text-[#B88A44] hover:text-[#A37B3D] uppercase tracking-widest transition-all">
+              View All →
+            </Link>
+          </div>
+          
+          <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar">
+            {recentAlerts.length > 0 ? recentAlerts.map((alert, i) => (
+              <div 
+                key={i}
+                className="flex items-center justify-between p-4 bg-[#ECE9E1]/60 rounded-[16px] hover:bg-[#ECE9E1] transition-all border border-[#4F5C4A]/[0.05]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-[38px] h-[38px] rounded-[12px] flex items-center justify-center ${
+                    alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'bg-[#A64D4D]/12 text-[#A64D4D]' :
+                    alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'bg-[#B88A44]/12 text-[#B88A44]' :
+                    'bg-[#4E6B4A]/12 text-[#4E6B4A]'
+                  }`}>
+                    <Flame className="w-[18px] h-[18px]" />
+                  </div>
+                  <div>
+                    <p className="font-[800] text-[14px] text-[#1F2A22] leading-none mb-1">{alert.zone}</p>
+                    {alert.cooperative && alert.cooperative !== alert.zone && (
+                      <p className="text-[11px] text-[#6B7468] font-[600]">{alert.cooperative}</p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-slate-800">{alert.zone}</p>
-                  {alert.cooperative && alert.cooperative !== alert.zone && (
-                    <p className="text-xs text-slate-500">{alert.cooperative}</p>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2.5 py-1 rounded-[8px] text-[10px] font-[800] uppercase tracking-wider border ${
+                    alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'bg-[#A64D4D]/10 text-[#A64D4D] border-[#A64D4D]/15' :
+                    alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'bg-[#B88A44]/10 text-[#B88A44] border-[#B88A44]/15' :
+                    'bg-[#4E6B4A]/10 text-[#4E6B4A] border-[#4E6B4A]/15'
+                  }`}>
+                    {alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'Critical' :
+                     alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'Warning' : 'Info'}
+                  </span>
+                  {alert.temperature && (
+                    <span className="text-[13px] font-[800] text-[#B88A44]">{alert.temperature}°C</span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                  alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'bg-rose-100 text-rose-700' :
-                  alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'bg-amber-100 text-amber-700' :
-                  'bg-blue-100 text-blue-700'
-                }`}>
-                  {alert.severity === 'CRITIQUE' || alert.severity === 'urgence_maximale' ? 'Critical' :
-                   alert.severity === 'ATTENTION' || alert.severity === 'alerte_elevee' ? 'Warning' : 'Info'}
-                </span>
-                {alert.temperature && (
-                  <span className="text-sm font-bold text-orange-600">{alert.temperature}°C</span>
-                )}
+            )) : (
+              <div className="text-center py-12 text-[#6B7468]">
+                <Activity className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="font-[700] text-[14px]">No recent activity</p>
               </div>
-            </div>
-          )) : (
-            <div className="text-center py-8 text-slate-400">
-              <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">No recent activity</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

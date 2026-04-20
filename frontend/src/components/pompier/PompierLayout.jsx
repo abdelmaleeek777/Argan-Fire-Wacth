@@ -42,7 +42,7 @@ export default function PompierLayout() {
   const navigate = useNavigate();
 
   // Get user from localStorage
-  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const [user, setUser] = useState({
     nom: storedUser.nom || "Firefighter",
     prenom: storedUser.prenom || "",
@@ -54,13 +54,13 @@ export default function PompierLayout() {
   useEffect(() => {
     const fetchActiveAlerts = async () => {
       try {
-        const res = await api.get('/dashboard/pompier/stats');
+        const res = await api.get("/dashboard/pompier/stats");
         setActiveAlerts(res.data.alertesActives || 0);
       } catch (err) {
-        console.log('Could not fetch alerts count');
+        console.log("Could not fetch alerts count");
       }
     };
-    
+
     fetchActiveAlerts();
     // Refresh every 30 seconds
     const interval = setInterval(fetchActiveAlerts, 30000);
@@ -103,12 +103,13 @@ export default function PompierLayout() {
         {/* Desktop Sidebar */}
         <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-100 shadow-sm relative z-20">
           <div className="p-6 pb-2 border-b border-slate-100/50">
-            <div className="flex items-center gap-3 text-emerald-600 mb-8">
-              <ShieldAlert size={28} className="stroke-[2.5]" />
-              <h1 className="font-black text-xl tracking-tight">
-                Argan-Fire Watch
-              </h1>
-            </div>
+            <Link to="/pompier/dashboard" className="flex items-center text-[#4E6B4A] mb-8 mt-2 group">
+              <img src="/arganLogo.png" alt="Argan Fire Watch" className="h-12 w-14 object-contain transition-transform group-hover:scale-105" />
+              <span className="text-[14px] font-[800] tracking-tight whitespace-nowrap leading-tight">
+                <span className="text-[#4E6B4A] font-bold">Argan</span><br />
+                <span className="text-[#B88A44]"> Fire Watch</span>
+              </span>
+            </Link>
 
             <div className="mb-6 flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
               <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">

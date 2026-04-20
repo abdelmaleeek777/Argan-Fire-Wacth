@@ -53,12 +53,13 @@ export default function CoopLayout() {
       <aside className="hidden lg:flex w-56 flex-col fixed top-0 left-0 h-screen bg-white border-r border-gray-100">
         {/* Logo */}
         <div className="p-6 pb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <TreePine className="text-white w-5 h-5" />
-            </div>
-            <span className="font-bold text-xl text-emerald-600">ArganFire</span>
-          </div>
+          <Link to="/coop/dashboard" className="flex items-center">
+            <img src="/arganLogo.png" alt="Argan Fire Watch" className="h-12 w-14 object-contain" />
+            <span className="text-[14px] font-[800] tracking-tight whitespace-nowrap leading-tight">
+              <span className="text-[#4E6B4A] font-bold">Argan</span><br />
+              <span className="text-[#B88A44]"> Fire Watch</span>
+            </span>
+          </Link>
         </div>
 
         {/* Navigation */}
@@ -171,11 +172,12 @@ export default function CoopLayout() {
           <div className="fixed inset-0 bg-black/30" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed left-0 top-0 bottom-0 w-64 bg-white shadow-xl">
             <div className="p-5 flex items-center justify-between border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-                  <TreePine className="text-white w-4 h-4" />
-                </div>
-                <span className="font-bold text-lg text-emerald-600">ArganFire</span>
+              <div className="flex items-center mt-1">
+                <img src="/arganLogo.png" alt="Argan Fire Watch" className="h-10 w-12 object-contain" />
+                <span className="text-[12px] font-[800] tracking-tight whitespace-nowrap leading-tight">
+                  <span className="text-[#4E6B4A] font-bold">Argan</span><br />
+                  <span className="text-[#B88A44]"> Fire Watch</span>
+                </span>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />

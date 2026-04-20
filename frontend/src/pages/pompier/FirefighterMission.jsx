@@ -44,12 +44,12 @@ export default function FirefighterMission() {
 
   if (!currentMission) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <AlertTriangle className="w-16 h-16 text-slate-300" />
-        <p className="text-slate-500 font-medium">No active mission</p>
+      <div className="flex flex-col items-center justify-center h-full space-y-4">
+        <AlertTriangle className="w-16 h-16 text-[#6B7468]/30" />
+        <p className="text-[#6B7468] font-[700] text-[14px]">No active mission</p>
         <button
           onClick={() => navigate('/pompier/alertes')}
-          className="px-4 py-2 bg-rose-500 text-white rounded-xl font-bold"
+          className="px-4 py-2 bg-[#B88A44] hover:bg-[#A37B3D] text-white rounded-[12px] font-[800] text-[12px] uppercase tracking-widest transition-all"
         >
           Go to Alerts
         </button>
@@ -84,99 +84,100 @@ export default function FirefighterMission() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-[28px] w-full pb-10">
+      {/* Header — matches Admin */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/pompier/alertes')}
-            className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+            className="w-[42px] h-[42px] bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] rounded-[14px] flex items-center justify-center hover:bg-[#ECE9E1] transition-all"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
+            <ArrowLeft className="w-5 h-5 text-[#6B7468]" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Active Mission</h1>
-            <p className="text-slate-500 text-sm">Navigate to the incident location</p>
+          <div className="flex flex-col">
+             <h2 className="text-3xl font-black text-[#1F2A22]">Active Mission</h2>
+             <p className="text-[#6B7468] font-bold text-[14px]">Navigate to the incident location.</p>
           </div>
         </div>
         <button
           onClick={handleResolve}
-          className="flex items-center gap-2 px-5 py-3 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all font-bold shadow-lg shadow-emerald-200"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#4E6B4A] text-white rounded-[12px] hover:bg-[#3d5439] transition-all font-[800] text-[12px] uppercase tracking-widest shadow-md shadow-[#4E6B4A]/20 active:scale-95"
         >
-          <CheckCircle className="w-5 h-5" />
+          <CheckCircle className="w-4 h-4" />
           Mark as Resolved
         </button>
       </div>
 
       {/* Mission Info Card */}
-      <div className="bg-gradient-to-r from-rose-500 to-orange-500 rounded-2xl p-6 text-white">
-        <div className="flex items-start justify-between">
+      <div className="bg-[#B88A44] rounded-[24px] p-6 text-white shadow-[0_8px_24px_rgba(184,138,68,0.2)] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
+        <div className="flex items-start justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
-              <Flame className="w-8 h-8 animate-pulse" />
+            <div className="w-[52px] h-[52px] bg-white/20 backdrop-blur-sm rounded-[16px] flex items-center justify-center">
+              <Flame className="w-7 h-7 animate-pulse" />
             </div>
             <div>
-              <div className="text-white/70 text-sm font-medium">Alert #{currentMission.id}</div>
-              <h2 className="text-2xl font-black">{currentMission.zone}</h2>
-              <p className="text-white/80 mt-1">{currentMission.cooperative}</p>
+              <div className="text-white/60 text-[11px] font-[800] uppercase tracking-wider">Alert #{currentMission.id}</div>
+              <h2 className="text-[24px] font-[800] tracking-tight">{currentMission.zone}</h2>
+              <p className="text-white/80 text-[13px] font-[600] mt-0.5">{currentMission.cooperative}</p>
             </div>
           </div>
-          <div className={`px-4 py-2 rounded-xl font-bold text-sm ${
+          <div className={`px-3 py-1.5 rounded-[10px] font-[800] text-[10px] uppercase tracking-wider ${
             currentMission.severity === 'CRITIQUE' 
-              ? 'bg-rose-700/50 border border-rose-400/30'
-              : 'bg-amber-500/50 border border-amber-400/30'
+              ? 'bg-[#A64D4D]/40 border border-white/20'
+              : 'bg-white/15 border border-white/20'
           }`}>
             {currentMission.severity === 'CRITIQUE' ? 'Critical' : 'Warning'}
           </div>
         </div>
       </div>
 
-      {/* Location Details */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-rose-50 rounded-xl">
-              <MapPin className="w-5 h-5 text-rose-500" />
+      {/* Location Details — matches Admin card style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-[24px]">
+        <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-[24px] shadow-[0_8px_24px_rgba(31,42,33,0.06)] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-[38px] h-[38px] rounded-[12px] bg-[#A64D4D]/12 text-[#A64D4D] flex items-center justify-center shadow-sm">
+              <MapPin className="w-[18px] h-[18px]" />
             </div>
-            <span className="text-sm font-bold text-slate-400 uppercase">Location</span>
+            <span className="metadata text-[10px]">Location</span>
           </div>
-          <p className="text-lg font-bold text-slate-800">{currentMission.zone}</p>
+          <p className="text-[18px] font-[800] text-[#1F2A22]">{currentMission.zone}</p>
           {currentMission.lat && currentMission.lng && (
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-[12px] text-[#6B7468] font-[600] mt-1">
               {currentMission.lat.toFixed(4)}, {currentMission.lng.toFixed(4)}
             </p>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-emerald-50 rounded-xl">
-              <Phone className="w-5 h-5 text-emerald-500" />
+        <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-[24px] shadow-[0_8px_24px_rgba(31,42,33,0.06)] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-[38px] h-[38px] rounded-[12px] bg-[#4E6B4A]/12 text-[#4E6B4A] flex items-center justify-center shadow-sm">
+              <Phone className="w-[18px] h-[18px]" />
             </div>
-            <span className="text-sm font-bold text-slate-400 uppercase">Cooperative</span>
+            <span className="metadata text-[10px]">Cooperative</span>
           </div>
-          <p className="text-lg font-bold text-slate-800">{currentMission.cooperative}</p>
+          <p className="text-[18px] font-[800] text-[#1F2A22]">{currentMission.cooperative}</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-blue-50 rounded-xl">
-              <Navigation className="w-5 h-5 text-blue-500" />
+        <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-[24px] shadow-[0_8px_24px_rgba(31,42,33,0.06)] hover:shadow-[0_12px_40px_rgba(31,42,33,0.08)] transition-all duration-300">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-[38px] h-[38px] rounded-[12px] bg-[#B88A44]/10 text-[#B88A44] flex items-center justify-center shadow-sm">
+              <Navigation className="w-[18px] h-[18px]" />
             </div>
-            <span className="text-sm font-bold text-slate-400 uppercase">Coordinates</span>
+            <span className="metadata text-[10px]">Coordinates</span>
           </div>
           {currentMission.lat && currentMission.lng ? (
-            <p className="text-lg font-bold text-slate-800">
+            <p className="text-[18px] font-[800] text-[#1F2A22]">
               {currentMission.lat.toFixed(4)}, {currentMission.lng.toFixed(4)}
             </p>
           ) : (
-            <p className="text-slate-500 text-sm">Coordinates not available</p>
+            <p className="text-[#6B7468] text-[13px] font-[600]">Coordinates not available</p>
           )}
         </div>
       </div>
 
       {/* Map */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm" style={{ height: '450px' }}>
+      <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] overflow-hidden shadow-[0_8px_24px_rgba(31,42,33,0.06)]" style={{ height: '450px' }}>
         <MapContainer 
           center={missionCenter} 
           zoom={14} 
@@ -208,15 +209,15 @@ export default function FirefighterMission() {
               <Marker position={missionCenter} icon={fireIcon}>
                 <Popup>
                   <div className="text-center p-2 min-w-[200px]">
-                    <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Flame className="w-6 h-6 text-rose-500" />
+                    <div className="w-12 h-12 bg-[#A64D4D]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Flame className="w-6 h-6 text-[#A64D4D]" />
                     </div>
-                    <div className="font-bold text-slate-800 text-lg">{currentMission.zone}</div>
-                    <div className="text-sm text-slate-500 mt-1">{currentMission.cooperative}</div>
-                    <div className={`mt-3 inline-block px-3 py-1 rounded-lg text-xs font-bold ${
+                    <div className="font-[800] text-[#1F2A22] text-[16px]">{currentMission.zone}</div>
+                    <div className="text-[12px] text-[#6B7468] font-[600] mt-1">{currentMission.cooperative}</div>
+                    <div className={`mt-3 inline-block px-3 py-1 rounded-[8px] text-[10px] font-[800] uppercase tracking-wider border ${
                       currentMission.severity === 'CRITIQUE' 
-                        ? 'bg-rose-100 text-rose-700'
-                        : 'bg-amber-100 text-amber-700'
+                        ? 'bg-[#A64D4D]/10 text-[#A64D4D] border-[#A64D4D]/15'
+                        : 'bg-[#B88A44]/10 text-[#B88A44] border-[#B88A44]/15'
                     }`}>
                       {currentMission.severity === 'CRITIQUE' ? 'CRITICAL' : 'WARNING'}
                     </div>

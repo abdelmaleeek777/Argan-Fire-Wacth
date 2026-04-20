@@ -957,7 +957,7 @@ def get_all_admin_alerts():
                 c.nom_cooperative
             FROM alertes a
             LEFT JOIN zones_forestieres z ON a.id_zone = z.id_zone
-            LEFT JOIN cooperatives c ON z.nom_zone = c.zone_name
+            LEFT JOIN cooperatives c ON z.id_cooperative = c.id_cooperative
             ORDER BY a.date_creation DESC
         """)
         alerts = cursor.fetchall()

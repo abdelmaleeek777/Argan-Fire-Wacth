@@ -1,60 +1,80 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+
+// Shared external store so all components using this hook stay in sync
+// without needing a React context provider
+let listeners = [];
+function subscribe(listener) {
+  listeners = [...listeners, listener];
+  return () => {
+    listeners = listeners.filter(l => l !== listener);
+  };
+}
+function emitChange() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function getStatusSnapshot() {
+  return localStorage.getItem('pompierStatus') || 'available';
+}
+
+function getMissionSnapshot() {
+  return localStorage.getItem('currentMission') || null;
+}
 
 // Custom hook to persist pompier status across pages
+// Uses useSyncExternalStore to keep all instances in sync
 export function usePompierState() {
-  // Load initial state from localStorage
-  const [pompierStatus, setPompierStatusInternal] = useState(() => {
-    const saved = localStorage.getItem('pompierStatus');
-    return saved || 'available';
-  });
-  
-  const [currentMission, setCurrentMissionInternal] = useState(() => {
-    const saved = localStorage.getItem('currentMission');
+  const pompierStatus = useSyncExternalStore(subscribe, getStatusSnapshot);
+  const currentMissionRaw = useSyncExternalStore(subscribe, getMissionSnapshot);
+
+  const currentMission = (() => {
     try {
-      return saved ? JSON.parse(saved) : null;
+      return currentMissionRaw ? JSON.parse(currentMissionRaw) : null;
     } catch {
       return null;
     }
-  });
+  })();
 
-  // Wrapper to persist status
+  // Wrapper to persist status and notify all instances
   const setPompierStatus = useCallback((status) => {
-    setPompierStatusInternal(status);
     localStorage.setItem('pompierStatus', status);
+    emitChange();
   }, []);
 
-  // Wrapper to persist mission
+  // Wrapper to persist mission and notify all instances
   const setCurrentMission = useCallback((mission) => {
-    setCurrentMissionInternal(mission);
     if (mission) {
       localStorage.setItem('currentMission', JSON.stringify(mission));
     } else {
       localStorage.removeItem('currentMission');
     }
+    emitChange();
   }, []);
 
   const takeMission = useCallback((alert) => {
-    setCurrentMission(alert);
-    setPompierStatus('on_mission');
-  }, [setCurrentMission, setPompierStatus]);
+    const missionData = {
+      ...alert,
+      id: alert.id_alerte || alert.id,
+      id_alerte: alert.id_alerte || alert.id
+    };
+    localStorage.setItem('currentMission', JSON.stringify(missionData));
+    localStorage.setItem('pompierStatus', 'on_mission');
+    emitChange();
+  }, []);
 
   const completeMission = useCallback(() => {
-    setCurrentMission(null);
-    setPompierStatus('available');
-  }, [setCurrentMission, setPompierStatus]);
+    localStorage.removeItem('currentMission');
+    localStorage.setItem('pompierStatus', 'available');
+    emitChange();
+  }, []);
 
   // Sync with localStorage changes from other tabs
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key === 'pompierStatus') {
-        setPompierStatusInternal(e.newValue || 'available');
-      }
-      if (e.key === 'currentMission') {
-        try {
-          setCurrentMissionInternal(e.newValue ? JSON.parse(e.newValue) : null);
-        } catch {
-          setCurrentMissionInternal(null);
-        }
+      if (e.key === 'pompierStatus' || e.key === 'currentMission') {
+        emitChange();
       }
     };
     window.addEventListener('storage', handleStorage);

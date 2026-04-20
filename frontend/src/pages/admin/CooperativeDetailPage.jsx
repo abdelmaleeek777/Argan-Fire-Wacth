@@ -112,65 +112,65 @@ const CooperativeDetailPage = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-[32px] pb-10">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors group mb-4"
+        className="flex items-center gap-2 text-[#6B7468] hover:text-[#4E6B4A] transition-colors group mb-2"
       >
         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-        <span className="font-medium">Back to All Cooperatives</span>
+        <span className="metadata text-[14px]">Back to Cooperatives</span>
       </button>
 
       {/* Header Info */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full translate-x-32 -translate-y-32 blur-3xl opacity-50 -z-0"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex gap-6">
-            <div className="w-20 h-20 bg-emerald-600 rounded-3xl flex items-center justify-center text-white shadow-emerald-200 shadow-xl border-4 border-emerald-50">
-              <Building2 className="w-10 h-10" />
+      <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-10 shadow-[0_8px_24px_rgba(31,42,33,0.06)] overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-[#DCE3D6] rounded-full translate-x-32 -translate-y-32 blur-3xl opacity-30 -z-0"></div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex gap-8">
+            <div className="w-24 h-24 bg-[#4E6B4A] rounded-[24px] flex items-center justify-center text-white shadow-xl shadow-[#4E6B4A]/20 border border-[#DCE3D6]/20">
+              <Building2 className="w-12 h-12" />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-900">
+              <h1 className="card-title text-[#1F2A22]">
                 {cooperative.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-slate-500 font-medium">
-                <div className="flex items-center gap-1.5 ">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                  {cooperative.region}
+              <div className="flex flex-wrap items-center gap-6 mt-3 text-[#6B7468] font-bold">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#B88A44]" />
+                  <span className="text-[14px]">{cooperative.region}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-emerald-500" />
-                  Joined {new Date(cooperative.createdAt).toLocaleDateString()}
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#4E6B4A]" />
+                  <span className="text-[14px]">Joined {new Date(cooperative.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-col items-end gap-4">
             <span
-              className={`px-4 py-1.5 rounded-full text-sm font-bold border-2 ${
+              className={`badge px-5 py-2 rounded-full text-[11px] border shadow-sm ${
                 cooperative.status === "approved"
-                  ? "bg-emerald-50 border-emerald-100 text-emerald-700 shadow-emerald-100 shadow-sm"
+                  ? "bg-[#4E6B4A] text-white border-[#4E6B4A]"
                   : cooperative.status === "pending"
-                    ? "bg-amber-50 border-amber-100 text-amber-700 shadow-amber-100 shadow-sm"
-                    : "bg-rose-50 border-rose-100 text-rose-700 shadow-rose-100 shadow-sm"
+                    ? "bg-[#B88A44] text-white border-[#B88A44]"
+                    : "bg-rose-600 text-white border-rose-600"
               }`}
             >
-              {cooperative.status.toUpperCase()}
+              {cooperative.status}
             </span>
-            <div className="flex items-center gap-2 mt-2 bg-white/50 backdrop-blur-md p-1.5 rounded-xl border border-slate-200/60 shadow-sm">
+            <div className="flex items-center gap-3 mt-2 bg-[#DCE3D6]/40 backdrop-blur-md p-1.5 rounded-[16px] border border-[#4F5C4A]/[0.08] shadow-sm">
               {cooperative.status === "pending" && (
                 <>
-                  <button onClick={() => handleAction("approve")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors shadow-sm active:scale-95">
+                  <button onClick={() => handleAction("approve")} className="flex items-center gap-2 px-4 py-2 text-[12px] font-[800] text-white bg-[#4E6B4A] hover:bg-[#2F4A36] rounded-[10px] transition-all shadow-sm active:scale-95">
                     <CheckCircle className="w-4 h-4" /> Approve
                   </button>
-                  <button onClick={() => handleAction("reject")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors shadow-sm active:scale-95">
+                  <button onClick={() => handleAction("reject")} className="flex items-center gap-2 px-4 py-2 text-[12px] font-[800] text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-[10px] transition-all border border-rose-100 shadow-sm active:scale-95">
                     <XCircle className="w-4 h-4" /> Reject
                   </button>
                 </>
               )}
               {cooperative.status === "approved" && (
-                <button onClick={() => handleAction("suspend")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-rose-700 rounded-lg transition-colors shadow-sm active:scale-95">
-                  <Ban className="w-4 h-4" /> Suspend
+                <button onClick={() => handleAction("suspend")} className="flex items-center gap-2 px-4 py-2 text-[12px] font-[800] text-[#1F2A22] bg-[#F8F7F2] hover:bg-[#DCE3D6] rounded-[10px] transition-all border border-[#4F5C4A]/[0.10] shadow-sm active:scale-95">
+                  <Ban className="w-4 h-4" /> Suspend Account
                 </button>
               )}
             </div>
@@ -182,33 +182,33 @@ const CooperativeDetailPage = () => {
         {/* Left Col - Details */}
         <div className="lg:col-span-1 space-y-8">
           {/* Owner Details */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <User className="w-5 h-5 text-emerald-500" />
+          <section className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-8 shadow-sm">
+            <h3 className="section-title text-[#1F2A22] mb-6 flex items-center gap-3">
+              <User className="w-5 h-5 text-[#4E6B4A]" />
               Owner Information
             </h3>
             <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
+              <div className="p-5 bg-[#DCE3D6]/30 rounded-[24px] border border-[#4F5C4A]/[0.05]">
+                <p className="metadata text-[10px] text-[#6B7468] mb-1.5">
                   Full Name
                 </p>
-                <p className="text-slate-800 font-semibold">
+                <p className="text-[#1F2A22] font-[700] text-[15px]">
                   {cooperative.ownerName}
                 </p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
+              <div className="p-5 bg-[#DCE3D6]/30 rounded-[24px] border border-[#4F5C4A]/[0.05]">
+                <p className="metadata text-[10px] text-[#6B7468] mb-1.5">
                   Email Address
                 </p>
-                <p className="text-slate-800 font-semibold break-all">
+                <p className="text-[#1F2A22] font-[700] text-[15px] break-all">
                   {cooperative.ownerEmail}
                 </p>
               </div>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
+              <div className="p-5 bg-[#DCE3D6]/30 rounded-[24px] border border-[#4F5C4A]/[0.05]">
+                <p className="metadata text-[10px] text-[#6B7468] mb-1.5">
                   Phone Number
                 </p>
-                <p className="text-slate-800 font-semibold">
+                <p className="text-[#1F2A22] font-[700] text-[15px]">
                   {cooperative.phone || "N/A"}
                 </p>
               </div>
@@ -216,12 +216,12 @@ const CooperativeDetailPage = () => {
           </section>
 
           {/* Location details */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-orange-500" />
-              General Location
+          <section className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-8 shadow-sm">
+            <h3 className="section-title text-[#1F2A22] mb-4 flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-[#B88A44]" />
+              Location Info
             </h3>
-            <p className="text-slate-600 text-sm leading-relaxed">
+            <p className="text-[#6B7468] text-[14px] leading-relaxed font-bold">
               {cooperative.address ||
                 "No specific address provided for this cooperative."}
             </p>
@@ -231,26 +231,33 @@ const CooperativeDetailPage = () => {
         {/* Right Col - Zones and Sensors */}
         <div className="lg:col-span-2 space-y-8">
           {/* Zones Summary */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-emerald-500" />
+          <section className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-8 shadow-sm">
+            <h3 className="section-title text-[#1F2A22] mb-8 flex items-center gap-3">
+              <Layers className="w-5 h-5 text-[#4E6B4A]" />
               Protection Zones ({zones.length})
             </h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-6">
               {zones.length > 0 ? (
                 zones.map((zone) => (
                   <div
                     key={zone._id}
-                    className="p-4 border border-slate-100 rounded-2xl bg-emerald-50/20"
+                    className="p-6 border border-[#4F5C4A]/[0.08] rounded-[24px] bg-[#DCE3D6]/20 relative group"
                   >
-                    <p className="font-bold text-slate-800">{zone.name}</p>
-                    <p className="text-sm text-slate-500 mt-1 mb-4">
-                      {zone.description || "Fire monitoring zone"}
-                    </p>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="font-[800] text-[18px] text-[#1F2A22] tracking-tight">{zone.name}</p>
+                        <p className="metadata text-[11px] text-[#6B7468] mt-0.5">
+                          {zone.description || "Fire monitoring argan forest zone"}
+                        </p>
+                      </div>
+                      <div className="px-4 py-1.5 bg-[#4E6B4A]/10 text-[#4E6B4A] rounded-full text-[12px] font-[800] border border-[#4E6B4A]/10">
+                        Active Monitoring
+                      </div>
+                    </div>
 
                     {/* Zone Boundary Map */}
                     {zone.geojson && zone.geojson.coordinates && (
-                      <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-emerald-100">
+                      <div className="h-[320px] w-full rounded-[20px] overflow-hidden border border-[#4F5C4A]/[0.10] shadow-inner relative z-0">
                         <MapContainer
                           center={[30.4278, -9.5981]}
                           zoom={10}
@@ -264,8 +271,10 @@ const CooperativeDetailPage = () => {
                               c[0],
                             ])}
                             pathOptions={{
-                              color: "#059669",
-                              fillOpacity: 0.4,
+                              color: "#4E6B4A",
+                              fillColor: "#4E6B4A",
+                              fillOpacity: 0.2,
+                              weight: 3,
                             }}
                           />
                           <MapRefocus coords={zone.geojson.coordinates[0]} />
@@ -275,75 +284,66 @@ const CooperativeDetailPage = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-slate-400 italic">No zones defined yet.</p>
+                <div className="text-center py-12 bg-[#DCE3D6]/20 rounded-[24px] border border-dashed border-[#4F5C4A]/20">
+                  <Layers className="w-10 h-10 text-[#6B7468]/30 mx-auto mb-4" />
+                  <p className="metadata text-[#6B7468] italic">No zones defined yet.</p>
+                </div>
               )}
             </div>
           </section>
 
           {/* Sensors List */}
-          <section className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-orange-500" />
+          <section className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-[#4F5C4A]/[0.05] flex items-center justify-between">
+              <h3 className="section-title text-[#1F2A22] flex items-center gap-3">
+                <Cpu className="w-5 h-5 text-[#B88A44]" />
                 Active Sensors ({sensors.length})
               </h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">
-                      Sensor ID / Type
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">
-                      Zone
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">
-                      Battery
-                    </th>
+                  <tr className="metadata bg-[#DCE3D6]/40 text-[#6B7468] text-[10px]">
+                    <th className="px-8 py-[18px]">Sensor Reference</th>
+                    <th className="px-8 py-[18px]">Zone</th>
+                    <th className="px-8 py-[18px]">Status</th>
+                    <th className="px-8 py-[18px] text-right">Battery</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
+                <tbody className="divide-y divide-[#4F5C4A]/[0.05]">
                   {sensors.length > 0 ? (
                     sensors.map((sensor) => (
                       <tr
                         key={sensor._id}
-                        className="hover:bg-slate-50/50 transition-colors"
+                        className="hover:bg-[#DCE3D6]/30 transition-colors group"
                       >
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-800">
+                        <td className="px-8 py-5">
+                          <p className="font-[800] text-[#1F2A22] text-[14px]">
                             {sensor.uid}
                           </p>
-                          <p className="text-xs text-slate-500">
-                            {sensor.type || "Standard Node"}
+                          <p className="text-[11px] text-[#6B7468] font-bold mt-0.5">
+                            {sensor.type || "Standard Monitoring Node"}
                           </p>
                         </td>
-                        <td className="px-6 py-4 text-slate-600">
-                          {zones.find((z) => z._id === sensor.zoneId)?.name ||
-                            "Default Zone"}
+                        <td className="px-8 py-5">
+                          <span className="text-[13px] font-bold text-[#6B7468]">
+                            {zones.find((z) => z._id === sensor.zoneId)?.name || "Primary Zone"}
+                          </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <Activity
-                              className={`w-4 h-4 ${sensor.status === "active" ? "text-emerald-500" : "text-slate-400"}`}
-                            />
-                            <span
-                              className={`font-medium ${sensor.status === "active" ? "text-emerald-700" : "text-slate-500"}`}
-                            >
-                              {sensor.status.charAt(0).toUpperCase() +
-                                sensor.status.slice(1)}
+                        <td className="px-8 py-5 text-[#1F2A22]">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${sensor.status === "active" ? "bg-[#4E6B4A] shadow-[0_0_8px_rgba(78,107,74,0.4)]" : "bg-[#6B7468]"}`}></div>
+                            <span className="text-[13px] font-[800] uppercase tracking-wider">
+                              {sensor.status}
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2 text-slate-600 font-medium">
+                        <td className="px-8 py-5 text-right font-bold text-[#1F2A22]">
+                          <div className="flex items-center justify-end gap-3 text-[13px]">
                             {sensor.batteryLevel || 85}%
-                            <div className="w-8 h-3 bg-slate-100 rounded-full overflow-hidden inline-block border border-slate-200 shadow-inner">
+                            <div className="w-10 h-3.5 bg-[#DCE3D6] rounded-full overflow-hidden inline-block border border-[#4F5C4A]/[0.08] shadow-inner p-0.5">
                               <div
-                                className={`h-full ${(sensor.batteryLevel || 85) <= 20 ? 'bg-rose-500' : (sensor.batteryLevel || 85) <= 50 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                                className={`h-full rounded-full ${(sensor.batteryLevel || 85) <= 20 ? 'bg-[#A64D4D]' : (sensor.batteryLevel || 85) <= 50 ? 'bg-[#B88A44]' : 'bg-[#4E6B4A]'}`}
                                 style={{
                                   width: `${sensor.batteryLevel || 85}%`,
                                 }}
@@ -357,9 +357,10 @@ const CooperativeDetailPage = () => {
                     <tr>
                       <td
                         colSpan="4"
-                        className="px-6 py-10 text-center text-slate-400 italic"
+                        className="px-8 py-16 text-center"
                       >
-                        No sensors deployed for this cooperative.
+                        <Cpu className="w-10 h-10 text-[#6B7468]/20 mx-auto mb-4" />
+                        <p className="metadata text-[#6B7468] italic text-[14px]">No sensors deployed for this cooperative.</p>
                       </td>
                     </tr>
                   )}

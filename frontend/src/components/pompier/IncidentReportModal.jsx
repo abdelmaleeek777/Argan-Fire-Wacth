@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, FileText, Flame, Clock, MapPin, Loader2, CheckCircle } from 'lucide-react';
+import { X, FileText, Flame, Clock, MapPin, Loader2, CheckCircle, Shield, AlertTriangle } from 'lucide-react';
 import api from '../../utils/axiosInstance';
 
 const CAUSE_OPTIONS = [
@@ -14,9 +14,9 @@ const CAUSE_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'EN_COURS', label: 'Still Active', color: 'bg-rose-500' },
-  { value: 'MAITRISE', label: 'Under Control', color: 'bg-amber-500' },
-  { value: 'ETEINT', label: 'Extinguished', color: 'bg-emerald-500' }
+  { value: 'EN_COURS', label: 'Still Active', icon: Flame, accentColor: '#A64D4D', bgColor: 'rgba(166,77,77,0.08)' },
+  { value: 'MAITRISE', label: 'Under Control', icon: Shield, accentColor: '#B88A44', bgColor: 'rgba(184,138,68,0.08)' },
+  { value: 'ETEINT', label: 'Extinguished', icon: CheckCircle, accentColor: '#4E6B4A', bgColor: 'rgba(78,107,74,0.08)' }
 ];
 
 export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen }) {
@@ -82,45 +82,53 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
   
   if (!alert || !isOpen) return null;
 
+  const selectedStatusOpt = STATUS_OPTIONS.find(s => s.value === formData.statut_incendie);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-[#1F2A22]/40 backdrop-blur-sm" />
+      
       <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[90vh] overflow-y-auto"
+        exit={{ scale: 0.95, opacity: 0, y: 20 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative bg-[#F8F7F2] shadow-[0_40px_100px_rgba(31,42,33,0.25)] max-w-lg w-full flex flex-col overflow-hidden max-h-[90vh]"
+        style={{ borderRadius: '34px 20px 40px 24px' }}
         onClick={e => e.stopPropagation()}
       >
         {success ? (
-          <div className="p-12 text-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-emerald-500" />
+          <div className="p-16 text-center">
+            <div className="w-20 h-20 rounded-full bg-[#4E6B4A]/12 flex items-center justify-center mx-auto mb-6 border border-[#4E6B4A]/15">
+              <CheckCircle className="w-10 h-10 text-[#4E6B4A]" />
             </div>
-            <h2 className="text-2xl font-black text-slate-800">Report Submitted!</h2>
-            <p className="text-slate-500 mt-2">The incident has been recorded and the alert marked as resolved.</p>
+            <h2 className="text-[24px] font-[800] text-[#1F2A22]">Report Submitted</h2>
+            <p className="text-[#6B7468] font-[600] mt-2 text-[14px]">The incident has been recorded and the alert marked as resolved.</p>
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(255,255,255,0.1),transparent)]" />
+            {/* Premium Header */}
+            <div className="relative overflow-hidden p-8 pb-6">
+              {/* Background accent glow */}
+              <div className="absolute right-[-10%] top-[-30%] w-[50%] h-[150%] opacity-[0.12] blur-[60px] pointer-events-none rounded-full z-0" style={{ backgroundColor: '#B88A44' }} />
               
-              <div className="relative flex items-start justify-between">
+              <div className="relative z-10 flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-white" />
+                  <div className="w-[52px] h-[52px] rounded-[16px] bg-[#DCE3D6] flex items-center justify-center border border-[#4F5C4A]/[0.10] shadow-sm">
+                    <FileText className="w-6 h-6 text-[#B88A44]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-white tracking-tight">
+                    <h2 className="text-[20px] font-[800] text-[#1F2A22] tracking-tight">
                       Incident Report
                     </h2>
-                    <p className="text-white/60 text-sm font-medium">
+                    <p className="metadata text-[11px] mt-0.5">
                       Complete the fire incident details
                     </p>
                   </div>
@@ -128,20 +136,24 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
                 
                 <button
                   onClick={onClose}
-                  className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+                  className="w-[38px] h-[38px] rounded-[12px] bg-[#ECE9E1] border border-[#4F5C4A]/[0.10] flex items-center justify-center hover:bg-[#DCE3D6] transition-all"
                 >
-                  <X className="w-5 h-5 text-white" />
+                  <X className="w-4 h-4 text-[#6B7468]" />
                 </button>
               </div>
             </div>
 
-            {/* Alert Info */}
-            <div className="px-6 pt-6">
-              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
-                <MapPin className="w-5 h-5 text-rose-500 flex-shrink-0" />
+            {/* Scrollable Content Area */}
+            <div className="overflow-y-auto custom-scrollbar flex-1">
+              {/* Alert Info Card */}
+              <div className="px-8 mt-2">
+              <div className="flex items-center gap-3 p-4 bg-[#ECE9E1]/60 rounded-[16px] border border-[#4F5C4A]/[0.08]">
+                <div className="w-[34px] h-[34px] rounded-[10px] bg-[#A64D4D]/10 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-[#A64D4D]" />
+                </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase">Location</p>
-                  <p className="font-bold text-slate-800">
+                  <p className="metadata text-[10px]">Location</p>
+                  <p className="font-[800] text-[14px] text-[#1F2A22]">
                     {alert.zone?.nom_zone || alert.zone || 'Unknown Zone'}
                   </p>
                 </div>
@@ -149,34 +161,48 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              {/* Status */}
+            <form onSubmit={handleSubmit} className="p-8 pt-6 space-y-6">
+              
+              {/* Fire Status — Premium Toggle */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+                <label className="metadata text-[11px] block mb-3">
                   Fire Status
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {STATUS_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, statut_incendie: opt.value }))}
-                      className={`px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                        formData.statut_incendie === opt.value
-                          ? `${opt.color} text-white shadow-lg`
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-3 gap-3">
+                  {STATUS_OPTIONS.map(opt => {
+                    const Icon = opt.icon;
+                    const isSelected = formData.statut_incendie === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, statut_incendie: opt.value }))}
+                        className={`relative flex flex-col items-center gap-2 px-4 py-4 rounded-[16px] transition-all duration-300 border ${
+                          isSelected
+                            ? 'shadow-md border-current'
+                            : 'bg-[#ECE9E1]/60 border-[#4F5C4A]/[0.08] hover:bg-[#ECE9E1] text-[#6B7468]'
+                        }`}
+                        style={isSelected ? { 
+                          backgroundColor: opt.bgColor,
+                          color: opt.accentColor,
+                          borderColor: `color-mix(in srgb, ${opt.accentColor} 30%, transparent)`
+                        } : {}}
+                      >
+                        <Icon className="w-5 h-5" strokeWidth={isSelected ? 2.5 : 2} />
+                        <span className="text-[11px] font-[800] uppercase tracking-wider">{opt.label}</span>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full" style={{ backgroundColor: opt.accentColor }} />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* End Date/Time */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  <Clock className="w-4 h-4 inline mr-1" />
+                <label className="metadata text-[11px] mb-2 block">
+                  <Clock className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
                   End Date & Time
                 </label>
                 <input
@@ -184,14 +210,14 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
                   name="date_fin"
                   value={formData.date_fin}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-3 bg-[#ECE9E1]/60 border border-[#4F5C4A]/[0.10] rounded-[14px] focus:bg-white focus:border-[#B88A44]/30 focus:shadow-[0_0_0_3px_rgba(184,138,68,0.08)] outline-none transition-all text-[14px] font-[700] text-[#1F2A22]"
                 />
               </div>
 
               {/* Area Burned */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  <Flame className="w-4 h-4 inline mr-1" />
+                <label className="metadata text-[11px] mb-2 block">
+                  <Flame className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
                   Area Burned (hectares)
                 </label>
                 <input
@@ -202,20 +228,22 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
                   placeholder="e.g. 2.5"
                   step="0.01"
                   min="0"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-3 bg-[#ECE9E1]/60 border border-[#4F5C4A]/[0.10] rounded-[14px] focus:bg-white focus:border-[#B88A44]/30 focus:shadow-[0_0_0_3px_rgba(184,138,68,0.08)] outline-none transition-all text-[14px] font-[700] text-[#1F2A22] placeholder-[#6B7468]/50"
                 />
               </div>
 
               {/* Presumed Cause */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+                <label className="metadata text-[11px] mb-2 block">
+                  <AlertTriangle className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
                   Presumed Cause
                 </label>
                 <select
                   name="cause_presumee"
                   value={formData.cause_presumee}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                  className="w-full px-4 py-3 bg-[#ECE9E1]/60 border border-[#4F5C4A]/[0.10] rounded-[14px] focus:bg-white focus:border-[#B88A44]/30 focus:shadow-[0_0_0_3px_rgba(184,138,68,0.08)] outline-none transition-all text-[14px] font-[700] text-[#1F2A22] appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7468' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
                   <option value="">Select a cause...</option>
                   {CAUSE_OPTIONS.map(cause => (
@@ -226,7 +254,7 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
 
               {/* Observations */}
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+                <label className="metadata text-[11px] mb-2 block">
                   Observations & Notes
                 </label>
                 <textarea
@@ -235,7 +263,7 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
                   onChange={handleChange}
                   placeholder="Describe the situation, actions taken, damage assessment..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 bg-[#ECE9E1]/60 border border-[#4F5C4A]/[0.10] rounded-[14px] focus:bg-white focus:border-[#B88A44]/30 focus:shadow-[0_0_0_3px_rgba(184,138,68,0.08)] outline-none transition-all text-[14px] font-[700] text-[#1F2A22] placeholder-[#6B7468]/50 resize-none"
                 />
               </div>
 
@@ -243,7 +271,7 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2.5 px-6 py-4 bg-[#4E6B4A] hover:bg-[#3d5439] text-white font-[800] text-[13px] uppercase tracking-widest rounded-[16px] transition-all shadow-[0_8px_24px_rgba(78,107,74,0.25)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
@@ -253,11 +281,12 @@ export default function IncidentReportModal({ alert, onClose, onSuccess, isOpen 
                 ) : (
                   <>
                     <CheckCircle className="w-5 h-5" />
-                    Submit Report & Resolve Alert
+                    Submit Report & Resolve
                   </>
                 )}
               </button>
             </form>
+            </div>
           </>
         )}
       </motion.div>

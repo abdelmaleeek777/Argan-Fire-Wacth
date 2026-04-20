@@ -8,7 +8,9 @@ import {
   ShieldAlert,
   Flame,
   Map,
-  AlertTriangle
+  AlertTriangle,
+  Leaf,
+  Search
 } from "lucide-react";
 import api from "../../utils/axiosInstance";
 
@@ -50,32 +52,39 @@ const FirefighterLayout = () => {
   const navItems = [
     { name: "Dashboard", path: "/pompier/dashboard", icon: LayoutDashboard },
     { name: "Alerts", path: "/pompier/alertes", icon: AlertTriangle, badge: activeAlerts },
-    { name: "Map", path: "/pompier/map", icon: Map },
+    { name: "Operations Map", path: "/pompier/map", icon: Map },
     { name: "Incidents", path: "/pompier/incidents", icon: ShieldAlert },
-    
   ];
 
+  const currentNav = navItems.find((item) => item.path === location.pathname);
+  const pageTitle = currentNav?.name || "Firefighter Portal";
+
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
-        <div className="p-6 border-b border-slate-100">
-          <Link to="/pompier/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-              <Flame className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <span className="font-black text-xl text-slate-900 tracking-tight leading-none block">
-                Argan-Fire
+    <div className="flex h-screen w-full bg-[#ECE9E1] text-[#1F2A22] overflow-hidden">
+      
+      {/* Fixed Sidebar — matches Admin */}
+      <aside className="w-[228px] bg-[#DCE3D6] hidden md:flex flex-col fixed inset-y-0 left-0 z-50 border-r border-[#4F5C4A]/[0.10] overflow-hidden">
+        
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 90 Q 30 50 80 10 M80 10 Q 70 30 90 40 M30 50 Q 20 30 40 20' stroke='%232F4A36' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`, backgroundSize: '150px' }}></div>
+        
+        <div className="p-8 pb-6 relative z-10">
+          <Link to="/pompier/dashboard" className="flex flex-col items-start gap-0.5">
+            <div className="flex items-center">
+              <img src="/arganLogo.png" alt="Argan Fire Watch" className="h-12 w-14 object-contain" />
+              <span className="text-[14px] font-[800] tracking-tight whitespace-nowrap">
+                <span className="text-[#4E6B4A] font-bold">Argan</span><br />
+                <span className="text-[#B88A44]"> Fire Watch</span>
               </span>
-              <span className="text-xs font-semibold uppercase tracking-widest text-emerald-600 block">
-                Firefighter
-              </span>
             </div>
+            <span className="metadata text-[9px] leading-none text-[#6B7468] ml-1 mt-1">
+              Response Unit
+            </span>
           </Link>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 mt-4">
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-2 space-y-1 relative z-10 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -83,20 +92,26 @@ const FirefighterLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-bold ${
+                className={`relative flex items-center justify-between h-[44px] px-3 rounded-[12px] transition-all duration-200 group ${
                   isActive
-                    ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-emerald-600 border border-transparent"
+                    ? "bg-[#CBD8C8] text-[#2F4A36] font-bold"
+                    : "text-[#6B7468] hover:bg-[#CBD8C8]/50 hover:text-[#1F2A22] font-semibold"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[20px] bg-[#B88A44] rounded-r-full shadow-[0_0_8px_rgba(184,138,68,0.4)]" />
+                  )}
                   <Icon
-                    className={`w-5 h-5 ${isActive ? "text-emerald-600" : "text-slate-400"}`}
+                    className={`w-[18px] h-[18px] transition-colors ${
+                      isActive ? "text-[#2F4A36]" : "text-[#6B7468] group-hover:text-[#4E6B4A]"
+                    }`}
+                    strokeWidth={isActive ? 2.5 : 2}
                   />
-                  {item.name}
+                  <span className="text-[14px]">{item.name}</span>
                 </div>
                 {item.badge > 0 && (
-                  <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">
+                  <span className="bg-[#A64D4D] text-white text-[10px] px-2 py-0.5 rounded-full font-[800] animate-pulse">
                     {item.badge}
                   </span>
                 )}
@@ -105,56 +120,86 @@ const FirefighterLayout = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        {/* Bottom Actions */}
+        <div className="p-4 relative z-10 mb-2">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 font-bold text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
+            className="flex items-center gap-2.5 h-[44px] w-full px-3 text-[#6B7468] hover:bg-[#F8F7F2]/50 hover:text-[#1F2A22] rounded-[16px] transition-all duration-200 font-bold"
           >
-            <LogOut className="w-5 h-5 text-slate-400 hover:text-red-500" />
-            Logout
+            <LogOut className="w-[18px] h-[18px]" strokeWidth={2} />
+            <span className="text-[14px]">Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40 shadow-sm">
-          <div className="flex items-center gap-4 md:hidden">
-            <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
-              <Menu className="w-6 h-6" />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:ml-[228px] h-screen overflow-hidden bg-[#ECE9E1]">
+        
+        {/* Header — matches Admin */}
+        <header className="h-[80px] shrink-0 px-[32px] md:px-[40px] flex items-center justify-between border-b border-[#4F5C4A]/[0.08] bg-[#ECE9E1]/80 backdrop-blur-md sticky top-0 z-40">
+          {/* Mobile Nav Toggle */}
+          <div className="flex items-center gap-4 md:hidden mr-4">
+            <button className="p-2 text-[#6B7468] bg-[#F8F7F2] rounded-[12px] border border-[#4F5C4A]/[0.10]">
+              <Menu className="w-5 h-5" />
             </button>
-            <span className="font-bold text-slate-900">Firefighter Portal</span>
           </div>
 
-          <div className="hidden md:block">
-            <h2 className="text-lg font-black text-slate-800 tracking-tight">
-              {navItems.find((item) => item.path === location.pathname)?.name || "Firefighter Portal"}
-            </h2>
+          <div className="flex flex-col pt-1">
+            <p className="metadata text-[11px] mb-0.5 opacity-90">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-3xl text-[#1F2A22]">
+                {pageTitle}
+              </h1>
+              <div className="flex items-center gap-1.5 text-[12px] text-[#2F4A36] bg-[#4E6B4A]/12 px-2 py-0.5 rounded-full font-[700] hidden sm:flex">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#4E6B4A] animate-pulse"></div>
+                Response Ready
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Right Box Tools */}
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="flex items-center gap-1">
+              <button className="w-9 h-9 flex items-center justify-center text-[#6B7468] hover:text-[#1F2A22] hover:bg-[#F8F7F2]/60 rounded-[12px] transition-all">
+                <Search className="w-4.5 h-4.5" />
+              </button>
+              <button className="relative w-9 h-9 flex items-center justify-center text-[#6B7468] hover:text-[#1F2A22] hover:bg-[#F8F7F2]/60 rounded-[12px] transition-all">
+                <Bell className="w-4.5 h-4.5" />
+                {activeAlerts > 0 && (
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-[#A64D4D] ring-2 ring-[#ECE9E1] rounded-full"></span>
+                )}
+              </button>
+            </div>
+            
+            <div className="h-6 w-px bg-[#4F5C4A]/20 hidden sm:block"></div>
+            
+            {/* Profile */}
             <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-black text-slate-800 leading-none">
+              <div className="text-right hidden sm:block">
+                <p className="text-[13px] font-[800] text-[#1F2A22] leading-none mb-0.5">
                   {userName}
                 </p>
-                <p className="text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-widest">
+                <p className="text-[10px] text-[#6B7468] font-[700] uppercase tracking-wider leading-none opacity-80">
                   {userRole}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-black shadow-md border-2 border-white">
+              <div className="w-[38px] h-[38px] rounded-[12px] bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] flex items-center justify-center text-[#4E6B4A] font-[800] text-[14px] shadow-sm">
                 {initials}
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
-          <Outlet />
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto w-full relative p-[28px] md:p-[32px] custom-scrollbar h-full">
+           <div className="max-w-[1600px] mx-auto">
+             <Outlet />
+           </div>
         </main>
       </div>
+      
     </div>
   );
 };

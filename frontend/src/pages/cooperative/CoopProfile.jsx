@@ -82,7 +82,7 @@ const CoopProfile = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans border-t-4 border-emerald-600">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 border-t-4 border-emerald-600">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -106,7 +106,7 @@ const CoopProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-20 px-4 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 pt-24 pb-20 px-4 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-100/50 blur-[120px] rounded-full pointer-events-none z-0"></div>
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-100/30 blur-[100px] rounded-full pointer-events-none z-0"></div>

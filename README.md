@@ -1,305 +1,222 @@
-# 🔥 Argan Fire Watch
+# Argan Fire Watch
 
-A comprehensive fire monitoring and alert system designed to protect forest areas through real-time alerts, sensor management, and emergency response coordination.
+Argan Fire Watch is a premium wildfire monitoring platform designed to protect Morocco’s argan ecosystem.
 
-## 📋 Overview
+The platform connects cooperatives, firefighters, and administrators through a unified monitoring system powered by sensors, live alerts, maps, and risk analysis.
 
-Argan Fire Watch is a web-based platform that enables cooperatives, firefighters, and administrators to:
-- **Monitor** forest zones with IoT sensors
-- **Detect** fire alerts in real-time
-- **Respond** quickly with coordinated firefighting efforts
-- **Track** incidents and manage resources
+---
 
-## 🎯 Key Features
+# Overview
 
-- **Multi-role Authentication**: Admin, Firefighters (POMPIER/CHEF_EQUIPE), and Cooperatives
-- **Zone Management**: Create, edit, and delete forest zones with geographic mapping
-- **Sensor Monitoring**: Track sensor performance and real-time environmental data
-- **Alert System**: Real-time fire alerts with WhatsApp notifications via Twilio
-- **Dashboard Analytics**: Role-specific dashboards with statistics and visualizations
-- **Email Verification**: Secure cooperative registration with email confirmation
-- **Interactive Maps**: Leaflet-based mapping with zone drawing and heat maps
-- **JWT Authentication**: Secure token-based API endpoints
+Argan Fire Watch was built to:
 
-## 🏗️ Tech Stack
+- Monitor argan zones in real time
+- Detect fire risks early using connected sensors
+- Coordinate between cooperatives and firefighters
+- Visualize alerts, incidents, and protected zones
+- Help preserve Morocco’s argan ecosystem
 
-### Backend
-- **Framework**: Flask 3.1.0
-- **Language**: Python
-- **Database**: MySQL
-- **Authentication**: JWT (JSON Web Tokens)
-- **Notifications**: Twilio (WhatsApp)
-- **CORS**: Enabled for cross-origin requests
+The application includes three main dashboards:
 
-### Frontend
-- **Framework**: React 19.2.0
-- **Build Tool**: Vite 7.3.1
-- **Styling**: Tailwind CSS 4.2.1
-- **Maps**: Leaflet 1.9.4 + React-Leaflet
-- **Charts**: Recharts 3.8.1
-- **Animations**: Framer Motion 12.35.1
-- **HTTP Client**: Axios 1.13.6
-- **Router**: React Router DOM 7.13.1
-- **Real-time**: Socket.IO 4.8.3
+- Admin Dashboard
+- Cooperative Dashboard
+- Firefighter Dashboard
 
-## 📦 Installation
+Each role has its own interface and permissions while sharing the same premium visual identity.
 
-### Prerequisites
-- Python 3.8+
-- Node.js 16+
-- MySQL 5.7+
-- Git
+---
 
-### Backend Setup
+# Main Features
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-repo/argan-fire-watch.git
-   cd argan-fire-watch/backend
-   ```
+## Admin Dashboard
 
-2. **Create virtual environment**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+The admin portal allows administrators to manage the entire platform.
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+- View all cooperatives
+- Approve or reject cooperative requests
+- Manage users and sensors
+- Monitor alerts and incidents
+- View live maps and statistics
+- Access logs and reports
 
-4. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   Update `.env` with your configuration:
-   ```env
-   DATABASE_URL=mysql://user:password@localhost/argan_fire_watch_db
-   JWT_SECRET=your-secret-key
-   TWILIO_ACCOUNT_SID=your-sid
-   TWILIO_AUTH_TOKEN=your-token
-   TWILIO_WHATSAPP_NUMBER=+1234567890
-   ```
+## Cooperative Dashboard
 
-5. **Setup database**
-   ```bash
-   mysql -u root -p < database/argan_fire_watch_db.sql
-   ```
+The cooperative portal is used by local cooperatives to monitor their argan zones.
 
-6. **Run backend**
-   ```bash
-   python run.py
-   ```
-   Server runs on `http://localhost:5000`
+- View assigned argan zones
+- Monitor sensors in real time
+- View alerts affecting their area
+- Access heat maps
+- Manage profile and cooperative information
 
-### Frontend Setup
+## Firefighter Dashboard
 
-1. **Navigate to frontend**
-   ```bash
-   cd ../frontend
-   ```
+The firefighter portal acts as a tactical command center.
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+- Receive live fire alerts
+- View active incidents
+- Access operational maps
 
-3. **Run development server**
-   ```bash
-   npm run dev
-   ```
-   Application runs on `http://localhost:5175`
+---
 
-4. **Build for production**
-   ```bash
-   npm run build
-   ```
+# Tech Stack
 
-## 🚀 Running the Application
+**Frontend:**
 
-### Development
+- React 18
+- Tailwind CSS
+- Framer Motion
+- GSAP + ScrollTrigger
+- Recharts
+- Axios
+- Lucide React
+- React Leaflet
 
-**Terminal 1 - Backend:**
+**Backend:**
+
+- Python 3.x
+- Flask / Connexion
+- MySQL
+- JWT Authentication
+- Twilio API (WhatsApp/SMS Monitoring)
+
+---
+
+# Design System
+
+The platform uses a custom “Argan Fire Watch” design language inspired by the Moroccan argan forest.
+
+**Main Colors:**
+
+- **Background**: `#F3F0E8`
+- **Surface**: `#FAF8F4`
+- **Argan Green**: `#4E6B4A`
+- **Muted Green**: `#75836F`
+- **Argan Gold**: `#B88A44`
+- **Clay Accent**: `#B56C4D`
+- **Dark Text**: `#1F2A22`
+
+**Typography:**
+
+- Clash Display
+
+---
+
+# Project Structure
+
+```txt
+frontend/
+├── src/
+│   ├── components/      # Reusable UI elements
+│   ├── layouts/         # Role-based layouts
+│   ├── pages/
+│   │   ├── admin/       # Administrator views
+│   │   ├── cooperative/ # Cooperative views
+│   │   ├── pompier/     # Firefighter views
+│   │   └── auth/        # Login and Registration
+│   ├── services/        # API integration
+│   └── App.jsx          # Route management
+│
+backend/
+├── app/
+│   ├── routes/          # API Controllers
+│   ├── models/          # Database interaction
+│   └── config.py        # Environment configuration
+├── database/            # SQL Migrations and Seeds
+└── run.py               # Main entry point
+```
+
+---
+
+# Installation
+
+## 1. Clone the repository
+
+```bash
+git clone <your-repository-url>
+cd Argan-Fire-Wacth
+```
+
+## 2. Install dependencies
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+```
+
+**Backend:**
+
 ```bash
 cd backend
-source .venv/Scripts/activate
+pip install -r requirements.txt
+```
+
+---
+
+
+
+# Run the Project
+
+**Backend:**
+
+```bash
+cd backend
 python run.py
 ```
 
-**Terminal 2 - Frontend:**
+**Frontend:**
+
 ```bash
 cd frontend
 npm run dev
 ```
 
-Both services are CORS-enabled and configured to work together:
-- **Frontend** → http://localhost:5175
-- **Backend API** → http://localhost:5000/api
-- **Database** → localhost:3306
+# Team
 
-## 📁 Project Structure
+### Core Development Team
 
-```
-argan-fire-watch/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py           # Flask app initialization
-│   │   ├── config.py             # Database configuration
-│   │   ├── models/               # Database models
-│   │   ├── routes/               # API endpoints
-│   │   │   ├── auth_routes.py    # Authentication
-│   │   │   ├── zones.py          # Zone management
-│   │   │   ├── sensors.py        # Sensor data
-│   │   │   ├── alerts.py         # Alert system
-│   │   │   └── dashboard.py      # Dashboard data
-│   │   └── services/             # (Placeholder - not currently used)
-│   ├── database/
-│   │   └── argan_fire_watch_db.sql
-│   ├── notification.py           # Twilio notifications
-│   ├── run.py                    # Entry point
-│   ├── requirements.txt
-│   └── tests/                    # (Placeholder - not currently used)
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/           # Reusable components
-│   │   │   ├── cooperative/      # Coop dashboard components
-│   │   │   ├── pompier/          # Firefighter components
-│   │   │   └── admin/            # Admin components
-│   │   ├── pages/                # Page components
-│   │   │   ├── public/           # Login, Register
-│   │   │   ├── cooperative/      # Coop pages
-│   │   │   ├── pompier/          # Firefighter pages
-│   │   │   └── admin/            # Admin pages
-│   │   ├── utils/                # Utilities
-│   │   │   └── axiosInstance.js  # API client
-│   │   ├── App.jsx               # Main app
-│   │   └── main.jsx
-│   ├── public/                   # Static assets
-│   ├── package.json
-│   └── vite.config.js
-│
-└── README.md
-```
+- **HAMDA Abdelmalek**
+  - Frontend development
+  - Backend development
+  - Full platform redesign
+  - UI/UX and visual identity
+  - [LinkedIn](https://www.linkedin.com/in/abdelmalek-hamda/)
 
-## 👥 User Roles
+- **GHAZAF Hajar**
+  - Frontend development
+  - [LinkedIn](https://www.linkedin.com/in/hajar-ghazaf-755131358/)
 
-| Role | Access | Features |
-|------|--------|----------|
-| **ADMIN** | Full platform | Manage cooperatives, users, view all alerts |
-| **POMPIER/FIREFIGHTER** | Fire response | View assigned zones, respond to alerts |
-| **CHEF_EQUIPE** | Team lead | Manage firefighter teams, coordinate response |
-| **COOPERATIVE** | Zone owner | Create zones, manage sensors, view own alerts |
+- **HASSAN Assmaa**
+  - Backend development
+  - Twilio integration
+  - [LinkedIn](https://www.linkedin.com/in/assmaa-hassan-639315248/)
 
-## 🔌 API Endpoints
+### Red Team (Audit / Attack Simulation)
 
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - Cooperative registration
-- `POST /api/auth/verify-email` - Email verification
+- **EL BARAKA Rim**
+  - [LinkedIn](https://www.linkedin.com/in/rim-el-baraka-494670343/)
 
-### Zones
-- `GET /api/zones` - List cooperative zones
-- `POST /api/zones` - Create new zone
-- `DELETE /api/zones/:id` - Delete zone
+- **EL KHESSOUANI Ilyass**
+  - [LinkedIn](https://www.linkedin.com/in/ilyass-el-khessouani-4751352a7/)
 
-### Sensors
-- `GET /api/sensors` - List sensors
-- `POST /api/sensors` - Add sensor
-- `GET /api/sensors/:id/data` - Get sensor readings
+### Blue Team (Configuration / Defense)
 
-### Alerts
-- `GET /api/alerts` - List alerts
-- `POST /api/alerts` - Create alert
-- `GET /api/alerts/stats` - Alert statistics
+- **EL-IBRAHYMY El Mehdi**
+  - [LinkedIn](https://www.linkedin.com/in/el-mehdi-el-ibrahymy-32515b2b6/)
 
-### Dashboard
-- `GET /api/dashboard/stats` - Summary statistics
-- `GET /api/dashboard/geojson` - Map data
+- **FAJRI Rania**
+  - [LinkedIn](https://www.linkedin.com/in/raniafajri/)
 
-## ⚙️ Configuration
+### QA Engineer (Testing)
 
-### Database Connection
-Edit `backend/app/config.py`:
-```python
-DATABASE_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'your-password',
-    'database': 'argan_fire_watch_db'
-}
-```
+- **GOURMIJE Ferdaousse**
+  - [LinkedIn](https://www.linkedin.com/in/ferdaousse-gourmije-0708533bb/)
 
-### Twilio Setup
-1. Sign up at [twilio.com](https://www.twilio.com)
-2. Get your credentials and WhatsApp number
-3. Add to `.env`:
-   ```
-   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxx
-   TWILIO_AUTH_TOKEN=your-token
-   TWILIO_WHATSAPP_NUMBER=+212xxxxxxxxx
-   ```
-
-## 🐛 Common Issues
-
-### "Unknown column 'envoye' in 'where clause'"
-Add the `envoye` column to the `alertes_utilisateurs` table:
-```sql
-ALTER TABLE alertes_utilisateurs
-ADD COLUMN envoye BOOLEAN DEFAULT 0;
-```
-
-### CORS errors
-Ensure both backend and frontend are running on configured ports (5000 and 5175)
-
-### Database connection refused
-Check MySQL is running and credentials in `.env` are correct
-
-## 🤝 Contributing
-
-1. Create a feature branch: `git checkout -b feature/name`
-2. Commit changes: `git commit -m 'Add feature'`
-3. Push to branch: `git push origin feature/name`
-4. Open a Pull Request
-
-## 📝 Recent Updates (Mar 28, 2026)
-
-- ✅ Fixed route path misalignment in API blueprints
-- ✅ Fixed SQL query errors in alerts system
-- ✅ Fixed JavaScript hoisting issues in frontend
-- ✅ Added missing sensors route for cooperatives
-- ✅ Improved zone creation and linking to cooperatives
-- ✅ Enhanced error handling and user feedback
-
-## 📦 Planned Features (Not Yet Implemented)
-
-The following directories contain placeholder code for future features:
-- `backend/app/services/` - AI propagation model, integrity verification, email service
-- `backend/tests/` - Unit tests for planned features
-
-These can be safely removed or used as a foundation when features are implemented.
-
-## 🧹 Cleanup (Optional)
-
-To remove placeholder code for unimplemented features:
-
-```bash
-# Remove unused directories
-rm -rf backend/tests
-rm -rf backend/app/services
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see LICENSE file for details.
-
-## 👨‍💻 Support
-
-For issues, questions, or suggestions:
-- Open an issue on GitHub
-- Contact the development team
+- **HADAD Haytam**
+  - [LinkedIn](https://www.linkedin.com/in/haytam-hadad-037a6132b/)
 
 ---
 
-**Argan Fire Watch** - Protecting forests. Saving lives. 🌲🚒
+_Preserving the heritage of the dry landscape through innovation._

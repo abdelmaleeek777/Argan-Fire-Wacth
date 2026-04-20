@@ -25,9 +25,13 @@ const Layout = ({ children }) => {
           boxSizing: 'border-box',
         }}
       >
-        <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 600 }}>
-          🌳 Argan-Fire Watch
-        </h1>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+          <img src="/arganLogo.png" alt="Argan Fire Watch" style={{ height: '3rem', width: '3.5rem', objectFit: 'contain' }} />
+          <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+            <span style={{ color: '#4E6B4A', fontWeight: 'bold' }}>Argan</span><br />
+            <span style={{ color: '#B88A44' }}> Fire Watch</span>
+          </span>
+        </Link>
         <nav>
           <Link
             to="/"

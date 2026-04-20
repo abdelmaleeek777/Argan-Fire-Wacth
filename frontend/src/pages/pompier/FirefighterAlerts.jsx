@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../utils/axiosInstance";
 import { 
   AlertTriangle, Clock, RefreshCw, Loader2, ShieldAlert, 
-  Filter, MapPin, Flame, CheckCircle, Eye, Search, Navigation
+  Filter, MapPin, Flame, CheckCircle, CheckCircle2, Eye, Search, Navigation, Zap, Cpu, Thermometer, Bell
 } from "lucide-react";
 import AlertNotificationModal from "../../components/pompier/AlertNotificationModal";
 import IncidentReportModal from "../../components/pompier/IncidentReportModal";
@@ -58,6 +58,7 @@ export default function FirefighterAlerts() {
         status: alert.statut || "OUVERTE",
         message: alert.message || "Fire alert detected",
         triggeredAt: alert.date_creation || alert.date_alerte || new Date().toISOString(),
+        temperature: alert.temperature ? Math.round(alert.temperature) : null,
         lat: parseFloat(alert.lat) || null,
         lng: parseFloat(alert.lng) || null
       }));
@@ -66,7 +67,6 @@ export default function FirefighterAlerts() {
       
       // Check for new critical alerts only if available
       if (pompierStatus === "available" && formattedAlerts.length > 0) {
-        // Filter for open critical alerts
         const openCriticalAlerts = formattedAlerts.filter(a => 
           a.status === "OUVERTE" && 
           (a.severity === "CRITIQUE" || a.severity === "urgence_maximale")
@@ -97,16 +97,13 @@ export default function FirefighterAlerts() {
   }, [fetchAlerts]);
 
   const handleTakeMission = (alert) => {
-    // Use the hook to persist state
     takeMission(alert);
     setShowAlertModal(false);
     setNewAlert(null);
     
-    // Update alert status to IN_PROGRESS in backend
     api.put(`/incidents/${alert.id}/status`, { statut: "EN_COURS" })
       .then(() => {
         fetchAlerts();
-        // Navigate to mission view
         navigate('/pompier/mission');
       })
       .catch(err => console.error("Error updating alert status", err));
@@ -131,27 +128,16 @@ export default function FirefighterAlerts() {
     fetchAlerts();
   };
 
-  const getSeverityStyle = (severity) => {
-    switch (severity) {
-      case "CRITIQUE": 
-      case "urgence_maximale":
-        return "bg-rose-100 text-rose-700 border-rose-200";
-      case "ATTENTION": 
-      case "alerte_elevee":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      case "INFO":
-      case "vigilance":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      default: 
-        return "bg-slate-100 text-slate-700 border-slate-200";
-    }
-  };
-
-  const getStatusStyle = (status) => {
-    if (status === "OUVERTE") return "bg-rose-50 text-rose-600 border-rose-200";
-    if (status === "EN_COURS") return "bg-amber-50 text-amber-600 border-amber-200";
-    if (status === "RESOLUE") return "bg-emerald-50 text-emerald-600 border-emerald-200";
-    return "bg-slate-50 text-slate-600 border-slate-200";
+  const getTimeAgo = (dateStr) => {
+    if (!dateStr) return "Unknown";
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
   const filteredAlerts = alerts.filter(alert => {
@@ -163,127 +149,148 @@ export default function FirefighterAlerts() {
     return matchesStatus && matchesSeverity && matchesSearch;
   });
 
+  // Stats
+  const stats = {
+    total: alerts.length,
+    open: alerts.filter(a => a.status === "OUVERTE").length,
+    inProgress: alerts.filter(a => a.status === "EN_COURS").length,
+    resolved: alerts.filter(a => a.status === "RESOLUE").length,
+    critical: alerts.filter(a => (a.severity === "CRITIQUE" || a.severity === "urgence_maximale") && a.status !== "RESOLUE").length,
+  };
+
   const statusOptions = ["ALL", "OUVERTE", "EN_COURS", "RESOLUE"];
   const severityOptions = ["ALL", "CRITIQUE", "ATTENTION", "INFO"];
 
   return (
-    <div className="space-y-6">
-      {/* Epic Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-600 via-orange-500 to-amber-500 p-8 text-white shadow-2xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTZzLTItNC0yLTYgMi00IDItNi0yLTQtMi02IDItNCAyLTYtMi00LTItNiAyLTQgMi02LTItNC0yLTYgMi00IDItNi0yLTQtMi02aDJjMCAyIDIgNCAyIDZzLTIgNC0yIDYgMiA0IDIgNi0yIDQtMiA2IDIgNCAyIDYtMiA0LTIgNiAyIDQgMiA2LTIgNC0yIDYgMiA0IDIgNi0yIDQtMiA2aDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
-        
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
-                <ShieldAlert className="w-8 h-8" />
-              </div>
-              <h1 className="text-3xl font-black tracking-tight">Alert Center</h1>
+    <div className="flex flex-col gap-[28px] w-full pb-10">
+
+      {/* Premium Header Card — matches Admin Alerts */}
+      <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] shadow-[0_8px_24px_rgba(31,42,33,0.06)] p-[32px]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-[56px] h-[56px] rounded-[16px] bg-[#DCE3D6] flex items-center justify-center border border-[#4F5C4A]/[0.10]">
+              <Bell className="w-7 h-7 text-[#B88A44]" />
             </div>
-            <p className="text-white/80 font-medium">
-              Monitor and respond to fire alerts across all zones
-            </p>
+            <div>
+              <h1 className="page-title text-[#1F2A22]">Alert Center</h1>
+              <p className="secondary-text text-[14px] mt-1">Monitor and respond to fire alerts · Auto-refresh enabled</p>
+            </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <div className={`px-4 py-2 rounded-xl font-bold text-sm ${
+            {/* Status Badge */}
+            <div className={`badge flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] shadow-sm border ${
               pompierStatus === "available" 
-                ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/30" 
-                : "bg-amber-500/20 text-amber-100 border border-amber-400/30"
+                ? "bg-[#4E6B4A]/10 border-[#4E6B4A]/20" 
+                : "bg-[#B88A44]/10 border-[#B88A44]/20"
             }`}>
-              Status: {pompierStatus === "available" ? "Available" : "On Mission"}
+              <span className={`w-2 h-2 rounded-full ${
+                pompierStatus === "available" ? "bg-[#4E6B4A] animate-pulse" : "bg-[#B88A44]"
+              }`}></span>
+              <span className="metadata text-[11px] text-[#1F2A22]">
+                {pompierStatus === "available" ? "Available" : pompierStatus === "on_mission" ? "On Mission" : "Unavailable"}
+              </span>
             </div>
+
+            {stats.critical > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 rounded-[12px] border border-rose-100">
+                <Flame className="w-4 h-4 text-rose-600" />
+                <span className="badge text-rose-700 text-[13px]">{stats.critical} Critical</span>
+              </div>
+            )}
             <button 
               onClick={fetchAlerts}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 transition-all font-bold border border-white/20"
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#F8F7F2] border border-[#4F5C4A]/[0.10] text-[#1F2A22] rounded-[14px] hover:bg-[#DCE3D6] hover:shadow-sm transition-all text-[13px] font-[800]"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> 
-              Refresh
+              <RefreshCw className={`w-4 h-4 text-[#4E6B4A] ${loading ? "animate-spin" : ""}`} /> Refresh
             </button>
           </div>
+        </div>
+
+        {/* Minimal Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-[32px]">
+          {[
+            { label: "Total", value: stats.total, color: "text-[#1F2A22]", bg: "bg-[#DCE3D6]" },
+            { label: "Open", value: stats.open, color: "text-[#B88A44]", bg: "bg-[#B88A44]/15" },
+            { label: "In Progress", value: stats.inProgress, color: "text-[#6E7A4E]", bg: "bg-[#6E7A4E]/15" },
+            { label: "Resolved", value: stats.resolved, color: "text-[#4E6B4A]", bg: "bg-[#4E6B4A]/15" },
+            { label: "Critical", value: stats.critical, color: "text-rose-600", bg: "bg-rose-50" },
+          ].map((stat, i) => (
+            <div key={i} className={`rounded-[16px] border border-[#4F5C4A]/[0.05] p-4 ${stat.bg}`}>
+              <p className="metadata text-[11px] font-bold">{stat.label}</p>
+              <p className={`text-[28px] font-[800] mt-1 leading-none ${stat.color}`}>{stat.value}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Current Mission Banner */}
       {currentMission && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 flex items-center justify-between">
+        <div className="bg-[#B88A44] rounded-[24px] p-5 flex items-center justify-between text-white shadow-[0_8px_24px_rgba(184,138,68,0.2)]">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-100 rounded-xl">
-              <Flame className="w-6 h-6 text-amber-600 animate-pulse" />
+            <div className="w-[42px] h-[42px] rounded-[14px] bg-white/20 flex items-center justify-center">
+              <Flame className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <div className="font-bold text-amber-800">Active Mission</div>
-              <div className="text-sm text-amber-600">
-                {currentMission.cooperative} - {currentMission.zone}
+              <div className="font-[800] text-[14px] uppercase tracking-wider">Active Mission</div>
+              <div className="text-[13px] text-white/80 font-[600]">
+                {currentMission.cooperative} — {currentMission.zone}
               </div>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => navigate('/pompier/mission')}
-              className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all font-bold shadow-lg shadow-blue-200"
+              className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm text-white rounded-[12px] hover:bg-white/25 transition-all font-[700] text-[12px] border border-white/20"
             >
-              <Navigation className="w-5 h-5" />
+              <Navigation className="w-4 h-4" />
               View Location
             </button>
             <button
               onClick={() => handleResolve(currentMission)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all font-bold shadow-lg shadow-emerald-200"
+              className="flex items-center gap-2 px-4 py-2 bg-white text-[#B88A44] rounded-[12px] hover:bg-white/90 transition-all font-[800] text-[12px]"
             >
-              <CheckCircle className="w-5 h-5" />
-              Mark Resolved
+              <CheckCircle className="w-4 h-4" />
+              Resolve
             </button>
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2 text-slate-500">
-            <Filter className="w-4 h-4" />
-            <span className="text-sm font-semibold">Filters:</span>
-          </div>
-          
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search cooperative or zone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-            />
-          </div>
-          
-          {/* Status Filter */}
-          <div className="flex gap-2">
+      {/* Filters Bar — matches Admin */}
+      <div className="flex flex-wrap items-center gap-4 bg-[#F8F7F2] p-4 rounded-[24px] border border-[#4F5C4A]/[0.10] shadow-[0_4px_12px_rgba(31,42,33,0.02)]">
+        <div className="flex items-center gap-3">
+          <span className="metadata text-[12px]">Status</span>
+          <div className="flex gap-1 bg-[#DCE3D6] p-1 rounded-[12px] border border-[#4F5C4A]/[0.05]">
             {statusOptions.map(status => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`px-4 py-2 text-[12px] font-[700] rounded-[8px] transition-all ${
                   statusFilter === status
-                    ? "bg-slate-800 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    ? "bg-[#F8F7F2] text-[#1F2A22] shadow-sm shadow-[#4F5C4A]/10"
+                    : "text-[#6B7468] hover:text-[#1F2A22]"
                 }`}
               >
                 {STATUS_LABELS[status]}
               </button>
             ))}
           </div>
-          
-          {/* Severity Filter */}
-          <div className="flex gap-2">
+        </div>
+
+        <div className="w-px h-6 bg-[#4F5C4A]/20 hidden sm:block"></div>
+
+        <div className="flex items-center gap-3">
+          <span className="metadata text-[12px]">Severity</span>
+          <div className="flex gap-1 bg-[#DCE3D6] p-1 rounded-[12px] border border-[#4F5C4A]/[0.05]">
             {severityOptions.map(severity => (
               <button
                 key={severity}
                 onClick={() => setSeverityFilter(severity)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`px-4 py-2 text-[12px] font-[700] rounded-[8px] transition-all ${
                   severityFilter === severity
-                    ? "bg-rose-500 text-white"
-                    : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                    ? "bg-[#F8F7F2] text-[#1F2A22] shadow-sm shadow-[#4F5C4A]/10"
+                    : "text-[#6B7468] hover:text-[#1F2A22]"
                 }`}
               >
                 {SEVERITY_LABELS[severity]}
@@ -291,124 +298,179 @@ export default function FirefighterAlerts() {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Alerts Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400">
-                <th className="p-4 font-bold">ID</th>
-                <th className="p-4 font-bold">Location</th>
-                <th className="p-4 font-bold">Type</th>
-                <th className="p-4 font-bold">Severity</th>
-                <th className="p-4 font-bold">Status</th>
-                <th className="p-4 font-bold">Time</th>
-                <th className="p-4 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="7" className="p-16 text-center text-slate-400">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-rose-500" />
-                    <span className="font-bold text-sm">Loading alerts...</span>
-                  </td>
-                </tr>
-              ) : filteredAlerts.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="p-16 text-center text-slate-400">
-                    <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <AlertTriangle className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <div className="font-semibold">No alerts match your filters</div>
-                  </td>
-                </tr>
-              ) : (
-                filteredAlerts.map((alert) => (
-                  <tr key={alert.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4">
-                      <span className="font-mono text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-                        #{alert.id}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-rose-50 rounded-lg">
-                          <MapPin className="w-4 h-4 text-rose-500" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-800">{alert.cooperative}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">{alert.zone}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-orange-500" />
-                        <span className="text-sm font-semibold text-slate-700">{alert.type}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg border ${getSeverityStyle(alert.severity)}`}>
-                        {SEVERITY_LABELS[alert.severity] || alert.severity}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                          {alert.status === "OUVERTE" && (
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                          )}
-                          <span className={`relative inline-flex rounded-full h-2 w-2 ${
-                            alert.status === "RESOLUE" ? "bg-emerald-500" : 
-                            alert.status === "EN_COURS" ? "bg-amber-500" : "bg-rose-500"
-                          }`}></span>
-                        </span>
-                        <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg border ${getStatusStyle(alert.status)}`}>
-                          {STATUS_LABELS[alert.status] || alert.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Clock className="w-3.5 h-3.5" />
-                        {new Date(alert.triggeredAt).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {alert.status === "OUVERTE" && pompierStatus === "available" && (
-                          <button
-                            onClick={() => handleTakeMission(alert)}
-                            className="px-3 py-1.5 bg-rose-500 text-white text-xs font-bold rounded-lg hover:bg-rose-600 transition-all"
-                          >
-                            Take Mission
-                          </button>
-                        )}
-                        {(alert.status === "OUVERTE" || alert.status === "EN_COURS") && (
-                          <button
-                            onClick={() => handleResolve(alert)}
-                            className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-all"
-                          >
-                            Resolve
-                          </button>
-                        )}
-                        {alert.status === "RESOLUE" && (
-                          <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg">
-                            ✓ Resolved
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px] ml-auto">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7468]" />
+          <input
+            type="text"
+            placeholder="Search cooperative or zone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 text-[13px] font-[600] bg-[#ECE9E1]/60 border border-[#4F5C4A]/[0.10] rounded-[12px] focus:outline-none focus:bg-white focus:border-[#B88A44]/30 transition-all text-[#1F2A22] placeholder-[#6B7468]/60"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 text-[13px] text-[#6B7468] font-bold">
+          Showing <span className="font-[800] text-[#1F2A22]">{filteredAlerts.length}</span> events
         </div>
       </div>
+
+      {/* Alerts Grid — Premium Cards matching Admin */}
+      {loading ? (
+        <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-[64px] flex flex-col items-center justify-center shadow-sm">
+          <Loader2 className="w-8 h-8 text-[#4E6B4A] animate-spin mb-4" />
+          <p className="text-[#6B7468] font-[700]">Scanning event ledger...</p>
+        </div>
+      ) : filteredAlerts.length === 0 ? (
+        <div className="bg-[#F8F7F2] rounded-[32px] border border-[#4F5C4A]/[0.10] p-[64px] flex flex-col items-center justify-center shadow-sm">
+          <div className="w-[64px] h-[64px] bg-[#DCE3D6] rounded-full flex items-center justify-center mb-6 border border-[#4F5C4A]/[0.10]">
+            <CheckCircle2 className="w-8 h-8 text-[#4E6B4A]" />
+          </div>
+          <h3 className="section-title text-[#1F2A22]">Event Ledger Empty</h3>
+          <p className="text-[#6B7468] mt-1 text-[14px] font-medium">No active alerts matching your current filters.</p>
+        </div>
+      ) : (
+        <div className="grid gap-[16px]">
+          {filteredAlerts.map((alert) => {
+            const isCritical = alert.severity === "CRITIQUE" || alert.severity === "urgence_maximale";
+            const isOpen = alert.status === "OUVERTE";
+            const isInProgress = alert.status === "EN_COURS";
+            const isResolved = alert.status === "RESOLUE";
+
+            // Argan palette dynamic accent
+            let accentColor = "#4E6B4A";
+            if (isCritical) accentColor = "#B55A3C";
+            else if (alert.severity === "ATTENTION" || alert.severity === "alerte_elevee") accentColor = "#B88A44";
+
+            let displayStatus = "Active";
+            if (isResolved) displayStatus = "Resolved";
+            else if (isInProgress) displayStatus = "In Progress";
+
+            const IconComp = isCritical ? Flame : isOpen ? AlertTriangle : isInProgress ? Zap : CheckCircle2;
+
+            return (
+              <div
+                key={alert.id}
+                className="group relative overflow-hidden shadow-[0_12px_40px_rgba(31,42,33,0.03)] hover:shadow-[0_16px_50px_rgba(31,42,33,0.05)] hover:-translate-y-[2px] transition-all duration-500"
+                style={{ 
+                  background: 'linear-gradient(135deg, #F7F4EE 0%, #EEF1EC 100%)',
+                  borderRadius: '34px 20px 40px 24px',
+                  border: '1px solid rgba(79, 92, 74, 0.08)'
+                }}
+              >
+                {/* Blurred Accent Background */}
+                <div 
+                  className="absolute right-[-10%] top-[-10%] w-[50%] h-[120%] opacity-[0.14] group-hover:opacity-[0.24] group-hover:scale-110 blur-[60px] transition-all duration-700 ease-out pointer-events-none rounded-full z-0"
+                  style={{ backgroundColor: accentColor }}
+                />
+
+                {/* Contour Overlay */}
+                <div 
+                  className="absolute inset-0 opacity-[0.03] mix-blend-multiply pointer-events-none z-0"
+                  style={{
+                    backgroundImage: `radial-gradient(ellipse at 90% -20%, transparent 40%, #1F2A22 41%, transparent 42%),
+                                      radial-gradient(ellipse at 90% -20%, transparent 50%, #1F2A22 51%, transparent 52%),
+                                      radial-gradient(ellipse at 90% -20%, transparent 60%, #1F2A22 61%, transparent 62%)`,
+                    backgroundSize: '150% 150%',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                />
+
+                <div className="relative z-10 flex flex-col md:flex-row items-stretch min-h-[140px]">
+                  
+                  {/* Left Content */}
+                  <div className="flex-1 p-6 md:p-8 md:pr-10 flex flex-col justify-center gap-1.5">
+                    
+                    {/* Metadata Ribbon */}
+                    <div className="metadata flex items-center gap-3 text-[11px] transition-opacity duration-300 group-hover:opacity-75" style={{ color: accentColor }}>
+                      <span className="font-mono">#{alert.id}</span>
+                      <div className="w-1.5 h-1.5 rounded-full opacity-40 bg-current" />
+                      <span>{getTimeAgo(alert.triggeredAt)}</span>
+                      <div className="w-1.5 h-1.5 rounded-full opacity-40 bg-current" />
+                      <span>{SEVERITY_LABELS[alert.severity] || alert.severity}</span>
+                    </div>
+
+                    {/* Title */}
+                    <h2 className="card-title text-[#1F2A22] mt-1.5 group-hover:translate-x-1 transition-transform duration-500 ease-out">
+                      {alert.cooperative || alert.zone}
+                    </h2>
+
+                    {/* Detail Pills */}
+                    <div className="flex flex-wrap items-center gap-3 mt-4">
+                      <div className="flex items-center gap-2 bg-[#F8F7F2]/60 backdrop-blur-md px-3.5 py-1.5 rounded-[12px] border border-[#4F5C4A]/10 shadow-[0_2px_8px_rgba(31,42,33,0.02)]">
+                        <MapPin className="w-4 h-4 opacity-80 z-10" style={{ color: accentColor }} />
+                        <span className="text-[13px] font-[800] text-[#4F5C4A]">{alert.zone}</span>
+                      </div>
+                      
+                      {alert.temperature && (
+                        <div className="flex items-center gap-1.5 bg-[#F8F7F2]/60 backdrop-blur-md px-3.5 py-1.5 rounded-[12px] border border-[#4F5C4A]/10 shadow-[0_2px_8px_rgba(31,42,33,0.02)]">
+                          <Thermometer className="w-3.5 h-3.5" style={{ color: accentColor }} />
+                          <span className="text-[13px] font-[800] text-[#1F2A22]">{alert.temperature}°C</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 bg-[#F8F7F2]/60 backdrop-blur-md px-3.5 py-1.5 rounded-[12px] border border-[#4F5C4A]/10 shadow-[0_2px_8px_rgba(31,42,33,0.02)]">
+                        <Flame className="w-3.5 h-3.5 text-[#6B7468]/80" />
+                        <span className="text-[12px] font-[800] text-[#4F5C4A] uppercase tracking-wider">{alert.type}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Action Area */}
+                  <div className="md:w-[240px] shrink-0 relative overflow-hidden flex flex-row md:flex-col items-center md:items-stretch justify-between p-6 border-t md:border-t-0 border-[#4F5C4A]/10">
+                    
+                    {/* Status Badge */}
+                    <div className="relative z-10 md:self-end">
+                      <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-[14px] backdrop-blur-md shadow-sm border"
+                           style={{
+                             backgroundColor: `color-mix(in srgb, ${accentColor} 8%, rgba(247,244,238,0.95))`,
+                             borderColor: `color-mix(in srgb, ${accentColor} 20%, transparent)`,
+                             color: accentColor
+                           }}
+                      >
+                        {isOpen && <div className="w-1.5 h-1.5 rounded-full animate-[pulse_2s_ease-in-out_infinite]" style={{ backgroundColor: accentColor }} />}
+                        <span className="badge text-[11px]">{displayStatus}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 mt-4 relative z-10">
+                      {isOpen && pompierStatus === "available" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleTakeMission(alert); }}
+                          className="px-4 py-2 bg-[#B88A44] text-white text-[10px] font-[800] uppercase tracking-wider rounded-[10px] hover:bg-[#A37B3D] transition-all shadow-md shadow-[#B88A44]/20"
+                        >
+                          Take Mission
+                        </button>
+                      )}
+                      {(isOpen || isInProgress) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleResolve(alert); }}
+                          className="px-4 py-2 bg-[#4E6B4A] text-white text-[10px] font-[800] uppercase tracking-wider rounded-[10px] hover:bg-[#3d5439] transition-all"
+                        >
+                          Resolve
+                        </button>
+                      )}
+                      {isResolved && (
+                        <span className="px-4 py-2 bg-[#4E6B4A]/10 text-[#4E6B4A] text-[10px] font-[800] uppercase tracking-wider rounded-[10px] border border-[#4E6B4A]/15 text-center">
+                          ✓ Resolved
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Background Icon */}
+                    <div className="hidden md:flex flex-1 items-end justify-end relative z-0">
+                      <IconComp className="w-24 h-24 opacity-10 absolute -bottom-4 -right-2" style={{ color: accentColor }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Alert Notification Modal */}
       <AlertNotificationModal
